@@ -11,6 +11,9 @@ const commands = [
   ["Knowledge", "/knowledge"],
   ["AI Quality", "/ai-quality"],
   ["Automation", "/automation"],
+  ["Automation · Pending approvals", "/automation?tab=overview"],
+  ["Automation · Policies", "/automation?tab=policies"],
+  ["Automation · Audit log", "/automation?tab=audit"],
   ["Integrations", "/integrations"],
 ] as const;
 
