@@ -30,7 +30,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 export function IntelligenceIssueWorkspace({ issue }: { issue: EmergingIssue }) {
-  const [mockState, setMockState] = useState(issue.status);
+  const [mockState, setMockState] = useState<string>(issue.status);
   const representatives = issue.representativeConversationIds.map(resolveDetail);
   const marker = issue.timeline.find((point) => point.marker);
   const chartData = issue.timeline.map((point) => ({ ...point, baselineRange: [point.baselineLow, point.baselineHigh] }));
