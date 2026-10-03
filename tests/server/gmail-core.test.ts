@@ -95,6 +95,31 @@ describe("Gmail normalization and MIME reply construction", () => {
     }]);
   });
 
+  test("HTML-only Gmail payload produces a plain-text Inbox body without executing HTML", async () => {
+    const normalized = await normalizeGmailMessage({
+      id: "html-only",
+      threadId: "thread-html",
+      labelIds: ["INBOX"],
+      payload: {
+        mimeType: "text/html",
+        headers: [
+          { name: "From", value: "customer@example.test" },
+          { name: "To", value: "support@example.test" },
+          { name: "Subject", value: "HTML support request" },
+          { name: "Message-ID", value: "<html-only@example.test>" },
+        ],
+        body: {
+          data: Buffer.from("<p>Hello <strong>support</strong>.</p><script>window.bad=true</script>").toString("base64url"),
+          size: 72,
+        },
+      },
+    }, "support@example.test");
+    expect(normalized.text).toContain("Hello support");
+    expect(normalized.displayText).toContain("Hello support");
+    expect(normalized.html).toContain("<script>");
+    expect(normalized.text).not.toContain("<script>");
+  });
+
   test("builds RFC MIME reply with same-thread headers", async () => {
     const result = await buildReplyMime({
       mailboxEmail: "support@example.test",
