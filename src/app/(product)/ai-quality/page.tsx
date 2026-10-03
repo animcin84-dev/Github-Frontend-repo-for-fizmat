@@ -1,2 +1,7 @@
-import { PlannedSurface } from "@/components/ui/planned-surface";
-export default function Page() { return <PlannedSurface title="AI Quality" subtitle="Measured behavior and Shadow Mode" focus={["Draft acceptance", "Failure explorer", "Unsupported claims", "Shadow Mode readiness"]} />; }
+import { Suspense } from "react";
+import { AIQualityWorkspace } from "@/components/ai-quality/ai-quality-workspace";
+import { LoadingState } from "@/components/ui/page-state";
+
+export default function AIQualityPage() {
+  return <Suspense fallback={<LoadingState label="Loading AI quality diagnostics…" />}><AIQualityWorkspace /></Suspense>;
+}

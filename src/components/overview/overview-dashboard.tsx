@@ -75,7 +75,7 @@ export function OverviewDashboard() {
                 <div className="flex items-center justify-between"><span className="text-[var(--muted-foreground)]">Unsupported claims</span><span className="font-medium">{(data.aiQuality.unsupportedClaimRate * 100).toFixed(1)}%</span></div>
                 <div className="flex items-center justify-between"><span className="text-[var(--muted-foreground)]">Reopened after AI outcome</span><span className="font-medium">{(data.aiQuality.reopenRate * 100).toFixed(1)}%</span></div>
               </div>
-              <Link href="/ai-quality" className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline">Inspect failure examples <ArrowRight className="size-3" /></Link>
+              <Link href="/ai-quality?tab=failures" className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline">Inspect failure examples <ArrowRight className="size-3" /></Link>
             </Surface>
 
             <Surface className="p-4">
@@ -99,7 +99,7 @@ export function OverviewDashboard() {
               {[
                 { icon: AlertTriangle, title: "17 conversations breached SLA", note: "Payments and security dominate", href: "/inbox?sla=breach", tone: "text-[var(--danger)]" },
                 { icon: Clock3, title: "Subscription policy needs owner review", note: "32 repeated questions have no approved answer", href: "/knowledge", tone: "text-[var(--warning)]" },
-                { icon: CheckCircle2, title: "326 verified resolutions today", note: "Outcome evidence passed the quality floor", href: "/ai-quality", tone: "text-[var(--success)]" },
+                { icon: CheckCircle2, title: "326 verified resolutions today", note: "Outcome evidence passed the quality floor", href: "/ai-quality?tab=evaluations", tone: "text-[var(--success)]" },
               ].map(({ icon: Icon, title, note, href, tone }) => <Link key={title} href={href} className="flex items-start gap-3 px-4 py-3 hover:bg-[var(--surface-2)]"><Icon className={`mt-0.5 size-4 ${tone}`} /><div className="min-w-0 flex-1"><div className="text-sm font-medium">{title}</div><div className="mt-0.5 text-xs text-[var(--muted-foreground)]">{note}</div></div><ArrowRight className="mt-0.5 size-4 text-[var(--muted-foreground)]" /></Link>)}
             </div>
           </Surface>
