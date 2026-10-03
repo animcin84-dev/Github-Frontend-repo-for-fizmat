@@ -100,6 +100,7 @@ export function OverviewDashboard() {
                 { icon: AlertTriangle, title: "17 conversations breached SLA", note: "Payments and security dominate", href: "/inbox?sla=breach", tone: "text-[var(--danger)]" },
                 { icon: Clock3, title: "Subscription policy needs owner review", note: "32 repeated questions have no approved answer", href: "/knowledge", tone: "text-[var(--warning)]" },
                 { icon: CheckCircle2, title: "326 verified resolutions today", note: "Outcome evidence passed the quality floor", href: "/ai-quality?tab=evaluations", tone: "text-[var(--success)]" },
+                { icon: ShieldCheck, title: `${data.automation.pendingApprovals} automation approvals awaiting review`, note: `${data.automation.pausedByIncident} rollout paused by active incident`, href: "/automation?tab=overview", tone: "text-[var(--warning)]" },
               ].map(({ icon: Icon, title, note, href, tone }) => <Link key={title} href={href} className="flex items-start gap-3 px-4 py-3 hover:bg-[var(--surface-2)]"><Icon className={`mt-0.5 size-4 ${tone}`} /><div className="min-w-0 flex-1"><div className="text-sm font-medium">{title}</div><div className="mt-0.5 text-xs text-[var(--muted-foreground)]">{note}</div></div><ArrowRight className="mt-0.5 size-4 text-[var(--muted-foreground)]" /></Link>)}
             </div>
           </Surface>
