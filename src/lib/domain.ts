@@ -93,6 +93,23 @@ export interface ConversationDetail {
   similarConversationIds: string[];
 }
 
+export interface IssueTimelinePoint {
+  time: string;
+  actual: number;
+  baselineLow: number;
+  baselineHigh: number;
+  marker?: string;
+}
+
+export interface IssueCorrelationCandidate {
+  label: string;
+  strength: "weak" | "moderate" | "strong";
+  reason: string;
+  eventAt?: string;
+  firstSignalAt?: string;
+  disclaimer: string;
+}
+
 export interface EmergingIssue {
   id: string;
   title: string;
@@ -102,14 +119,36 @@ export interface EmergingIssue {
   conversationCount: number;
   uniqueCustomerCount: number;
   firstSeenAt: string;
+  lastActivityAt: string;
+  activeMinutes: number;
   summary: string;
-  relatedProductArea?: string;
-  correlationCandidates: Array<{
-    label: string;
-    strength: "weak" | "moderate" | "strong";
-    disclaimer: string;
-  }>;
+  relatedProductArea: string;
+  signalCategory:
+    | "product_bug"
+    | "ux_confusion"
+    | "missing_knowledge"
+    | "policy_ambiguity"
+    | "operations"
+    | "billing_payment"
+    | "external_dependency"
+    | "unknown";
+  evidenceState: "sufficient" | "limited" | "watch_only";
+  owner?: string;
+  baselinePerHour: [number, number];
+  currentPerHour: number;
+  correlationCandidates: IssueCorrelationCandidate[];
   representativeConversationIds: string[];
+  commonPhrases: Array<{ phrase: string; count: number }>;
+  evidenceSummary: {
+    sampleSize: number;
+    windowLabel: string;
+    affectedCustomers: number;
+    languages: Array<{ locale: string; count: number }>;
+    productAreas: string[];
+    categories: Array<{ label: string; count: number }>;
+  };
+  timeline: IssueTimelinePoint[];
+  relatedKnowledgeIds: string[];
 }
 
 export interface KnowledgeSource {

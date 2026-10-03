@@ -34,3 +34,14 @@ export async function getConversationDetail(id: string): Promise<ConversationDet
   await wait(70);
   return resolveDetail(id);
 }
+
+
+export async function getIntelligenceIssues() {
+  await wait(85);
+  return emergingIssues;
+}
+
+export async function getIntelligenceIssue(id: string) {
+  await wait(65);
+  return emergingIssues.find((issue) => issue.id === id);
+}
