@@ -154,21 +154,55 @@ export interface EmergingIssue {
 export interface KnowledgeSource {
   id: string;
   title: string;
-  type: string;
+  type: "Policy" | "Help center" | "Internal doc" | "System record" | "Resolved cases";
   owner?: string;
-  status: "healthy" | "stale" | "conflict" | "missing_owner";
+  authority: "authoritative" | "supporting" | "unverified";
+  status: "healthy" | "aging" | "stale" | "conflict" | "missing_owner";
   lastUpdatedAt: string;
+  freshnessTargetDays: number;
   retrievalCount30d: number;
+  usedInRecentAnswers: number;
   coverageTopics: string[];
+  recentConversationIds: string[];
+  summary: string;
+  primaryClaim?: string;
+  validFrom?: string;
+  validUntil?: string;
 }
 
 export interface KnowledgeGap {
   id: string;
   topic: string;
   conversationCount: number;
+  trendPercent: number;
   firstSeenAt: string;
   exampleQuestion: string;
+  affectedLanguages: string[];
+  suggestedOwner?: string;
   status: "open" | "drafted" | "resolved";
+  relatedIssueId?: string;
+}
+
+export interface KnowledgeConflict {
+  id: string;
+  topic: string;
+  sourceAId: string;
+  sourceBId: string;
+  claimA: string;
+  claimB: string;
+  affectedDraftCount: number;
+  humanReviewCount: number;
+  affectedConversationIds: string[];
+  status: "open" | "reviewing" | "resolved";
+  relatedIssueId?: string;
+}
+
+export interface KnowledgeCoverage {
+  topic: string;
+  coverage: "strong" | "medium" | "weak" | "missing";
+  authority: "strong" | "supporting" | "missing";
+  freshness: "fresh" | "aging" | "stale" | "—";
+  sourceIds: string[];
 }
 
 export interface AIQualityMetrics {

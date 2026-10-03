@@ -1,2 +1,7 @@
-import { PlannedSurface } from "@/components/ui/planned-surface";
-export default function Page() { return <PlannedSurface title="Knowledge" subtitle="Authority, freshness, coverage, conflicts" focus={["Source health", "Knowledge gaps", "Conflict comparison", "Retrieval usage"]} />; }
+import { Suspense } from "react";
+import { KnowledgeWorkspace } from "@/components/knowledge/knowledge-workspace";
+import { LoadingState } from "@/components/ui/page-state";
+
+export default function KnowledgePage() {
+  return <Suspense fallback={<LoadingState label="Loading knowledge health…" />}><KnowledgeWorkspace /></Suspense>;
+}

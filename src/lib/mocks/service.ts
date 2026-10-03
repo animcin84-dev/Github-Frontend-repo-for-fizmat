@@ -1,4 +1,4 @@
-import { aiQuality, conversations, emergingIssues, knowledgeGaps, knowledgeSources, resolveDetail, volumeSeries } from "@/lib/mocks/data";
+import { aiQuality, conversations, emergingIssues, knowledgeConflicts, knowledgeCoverage, knowledgeGaps, knowledgeSources, resolveDetail, volumeSeries } from "@/lib/mocks/data";
 import type { ConversationDetail } from "@/lib/domain";
 
 const wait = (ms = 140) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,4 +44,20 @@ export async function getIntelligenceIssues() {
 export async function getIntelligenceIssue(id: string) {
   await wait(65);
   return emergingIssues.find((issue) => issue.id === id);
+}
+
+
+export async function getKnowledgeWorkspace() {
+  await wait(80);
+  return {
+    sources: knowledgeSources,
+    gaps: knowledgeGaps,
+    conflicts: knowledgeConflicts,
+    coverage: knowledgeCoverage,
+  };
+}
+
+export async function getKnowledgeSource(id: string) {
+  await wait(55);
+  return knowledgeSources.find((source) => source.id === id);
 }
