@@ -100,14 +100,19 @@ export async function createOrGetOutboundOperation(input: {
   return getOutboundOperation(input.integrationAccountId, input.clientRequestId);
 }
 
-export async function markOutboundSending(id: string, attempt: number) {
-  await getDb().update(outboundOperations).set({
+export async function claimOutboundOperation(id: string, expectedStatus: string, expectedAttempt: number) {
+  const [claimed] = await getDb().update(outboundOperations).set({
     status: "sending",
-    attempt,
+    attempt: expectedAttempt + 1,
     providerErrorCode: null,
     providerErrorMessage: null,
     updatedAt: new Date(),
-  }).where(eq(outboundOperations.id, id));
+  }).where(and(
+    eq(outboundOperations.id, id),
+    eq(outboundOperations.status, expectedStatus),
+    eq(outboundOperations.attempt, expectedAttempt),
+  )).returning();
+  return claimed;
 }
 
 export async function markOutboundSent(id: string, input: { providerMessageId: string; providerThreadId: string }) {

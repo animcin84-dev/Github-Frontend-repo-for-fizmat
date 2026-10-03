@@ -55,6 +55,7 @@ export class FixtureGmailClient implements GmailClient {
   historyError?: Error;
   searchResults: Array<{ id: string; threadId: string }> = [];
   sendError?: Error;
+  sendDelayMs = 0;
   sendCalls: Array<{ raw: string; threadId: string }> = [];
   listThreadCalls = 0;
   listHistoryCalls = 0;
@@ -75,6 +76,7 @@ export class FixtureGmailClient implements GmailClient {
   async searchMessages() { return this.searchResults; }
   async sendMessage(input: { raw: string; threadId: string }): Promise<GmailSendResponse> {
     this.sendCalls.push(input);
+    if (this.sendDelayMs) await new Promise((resolve) => setTimeout(resolve, this.sendDelayMs));
     if (this.sendError) throw this.sendError;
     return { id: "sent-provider-1", threadId: input.threadId };
   }

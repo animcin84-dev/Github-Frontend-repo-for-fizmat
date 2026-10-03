@@ -163,6 +163,32 @@ describe("manual outbound reply", () => {
     expect(client.sendCalls[0].threadId).toBe("thread-send");
   });
 
+  test("concurrent double-click shares one outbound operation and sends once", async () => {
+    const { conversationId } = await seedConversation();
+    const client = new FixtureGmailClient();
+    client.sendDelayMs = 80;
+    client.raws.set("sent-provider-1", rawFixture({
+      id: "sent-provider-1",
+      threadId: "thread-send",
+      from: "support@example.test",
+      to: "customer@example.test",
+      subject: "Need help",
+      messageId: "<sent-concurrent@example.test>",
+      inReplyTo: "<root@example.test>",
+      references: ["<root@example.test>"],
+      unread: false,
+    }));
+    const request = {
+      conversationId,
+      text: "One send only.",
+      clientRequestId: "44444444-4444-4444-8444-444444444444",
+      client,
+    };
+    const [a, b] = await Promise.all([sendManualGmailReply(request), sendManualGmailReply(request)]);
+    expect(client.sendCalls).toHaveLength(1);
+    expect([a.status, b.status]).toEqual(expect.arrayContaining(["sent", "sending"]));
+  });
+
   test("send failure does not persist a successfully-sent Message and records failed operation", async () => {
     const { account, conversationId } = await seedConversation();
     const client = new FixtureGmailClient();

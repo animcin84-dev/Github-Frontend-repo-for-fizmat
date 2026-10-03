@@ -15,8 +15,8 @@ import {
 } from "@/server/repositories/conversations";
 import {
   createOrGetOutboundOperation,
+  claimOutboundOperation,
   markOutboundFailed,
-  markOutboundSending,
   markOutboundSent,
 } from "@/server/repositories/sync";
 import { supportDataMode } from "@/server/services/integration-service";
@@ -134,12 +134,25 @@ export async function sendManualGmailReply(input: {
       deduplicated: true,
     };
   }
-  if (operation.status === "sending") {
+  const sendingIsStale = operation.status === "sending" && operation.updatedAt.getTime() < Date.now() - 2 * 60_000;
+  if (operation.status === "sending" && !sendingIsStale) {
     return {
       operationId: operation.id,
       status: "sending" as const,
       providerMessageId: operation.providerMessageId,
       providerThreadId: operation.providerThreadId,
+      deduplicated: true,
+    };
+  }
+
+  const claim = await claimOutboundOperation(operation.id, operation.status, operation.attempt);
+  if (!claim) {
+    const current = await getOutboundOperation(context.integration.id, input.clientRequestId);
+    return {
+      operationId: operation.id,
+      status: current?.status === "sent" ? "sent" as const : "sending" as const,
+      providerMessageId: current?.providerMessageId,
+      providerThreadId: current?.providerThreadId,
       deduplicated: true,
     };
   }
@@ -157,10 +170,8 @@ export async function sendManualGmailReply(input: {
   const client = input.client ?? new GmailRestClient(context.integration);
 
   try {
-    await markOutboundSending(operation.id, operation.attempt + 1);
-
     // If a previous provider response was lost, search by our deterministic RFC Message-ID before sending again.
-    if (operation.attempt > 0) {
+    if (claim.attempt > 1) {
       const existing = await client.searchMessages(`rfc822msgid:${mime.messageIdHeader}`);
       if (existing[0]) {
         const rawExisting = await client.getMessage(existing[0].id);
