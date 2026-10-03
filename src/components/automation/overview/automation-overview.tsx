@@ -88,14 +88,14 @@ export function AutomationOverview({ data }: { data: WorkspaceData }) {
         <Surface className="p-4">
           <div className="flex items-center gap-2"><Gauge className="size-4 text-[var(--info)]" /><h2 className="text-sm font-semibold">Automation maturity</h2></div>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">Deployment state, not a quality score.</p>
-          <div className="mt-4 grid grid-cols-5 gap-1">
+          <div className="mt-4 grid grid-cols-2 gap-1 sm:grid-cols-5">
             {maturity.map(([level, title, note], index) => {
               const active = index === data.summary.maturityLevel;
               const completed = index < data.summary.maturityLevel;
               return (
-                <div key={level} className={cn("rounded-md border p-2", active ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_5%,var(--surface-1))]" : "border-[var(--border)] bg-[var(--surface-2)]")}>
+                <div key={level} className={cn("min-w-0 overflow-hidden rounded-md border p-2", active ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_5%,var(--surface-1))]" : "border-[var(--border)] bg-[var(--surface-2)]")}>
                   <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Level {level}</div>
-                  <div className="mt-1 text-xs font-semibold">{title}</div>
+                  <div className="mt-1 break-words text-xs font-semibold">{title}</div>
                   <div className="mt-1 hidden text-[10px] leading-4 text-[var(--muted-foreground)] sm:block">{note}</div>
                   <div className="mt-2">{active ? <Badge tone="info">current</Badge> : completed ? <Badge tone="success">passed</Badge> : <Badge>future</Badge>}</div>
                 </div>

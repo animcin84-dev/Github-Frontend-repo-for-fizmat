@@ -45,7 +45,7 @@ test.describe("Phase E Automation", () => {
 
     const dialog = page.getByRole("dialog", { name: "Approval action preview" });
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByText("$18.20")).toBeVisible();
+    await expect(dialog.getByText("$18.20", { exact: true })).toBeVisible();
     await dialog.getByRole("button", { name: "Review & approve" }).click();
     await expect(dialog.getByText("Confirm financial action")).toBeVisible();
     await dialog.getByRole("button", { name: "Confirm mock approval" }).click();
@@ -116,7 +116,7 @@ test.describe("Phase E Automation", () => {
     const inspector = page.getByLabel("Automation audit details");
     await expect(inspector).toBeVisible();
     await expect(inspector.getByText("Decision vs execution")).toBeVisible();
-    await expect(inspector.getByText("refund-policy-v12")).toBeVisible();
+    await expect(inspector.getByText("refund-policy-v12", { exact: true })).toBeVisible();
     await expect(inspector.getByText(/human approved/i)).toBeVisible();
     await expect(inspector.getByText(/result verified/i)).toBeVisible();
     await expect(inspector.getByText("Rollback unavailable")).toBeVisible();

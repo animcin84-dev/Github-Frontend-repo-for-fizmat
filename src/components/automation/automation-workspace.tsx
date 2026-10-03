@@ -28,7 +28,7 @@ function TabButton({ value, active, setTab, children }: { value: Tab; active: Ta
 
 export function AutomationWorkspace() {
   const query = useQuery({ queryKey: ["automation-workspace"], queryFn: getAutomationWorkspace });
-  const [tabRaw, setTabRaw] = useQueryState("tab", { defaultValue: "overview" });
+  const [tabRaw, setTabRaw] = useQueryState("tab", { defaultValue: "overview", clearOnDefault: false });
 
   if (query.isLoading || !query.data) return <LoadingState label="Loading automation control plane…" />;
 
