@@ -26,6 +26,7 @@ jobs:
           tar -xzf /tmp/phase-a.tgz -C .
           rm -rf .bootstrap
           rm -f .github/workflows/phase-a-bootstrap.yml
+          rm -f .github/workflows/ci.yml
           cat > postcss.config.mjs <<'EOF'
           const config = {
             plugins: {
