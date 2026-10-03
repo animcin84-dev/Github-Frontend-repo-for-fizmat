@@ -96,11 +96,35 @@ describe("database idempotency and synchronization", () => {
     ];
     client.raws.set("m3", rawFixture({ id: "m3", threadId: "t3", from: "c@example.test", to: "support@example.test" }));
     client.raws.set("m4", rawFixture({ id: "m4", threadId: "t4", from: "d@example.test", to: "support@example.test" }));
+    client.threadPages = [{ threads: [{ id: "t3" }, { id: "t4" }] }];
 
     const result = await runIncrementalGmailSync({ integrationId: account.id, client });
     expect(client.listHistoryCalls).toBe(2);
     expect(result.messagesInserted).toBe(2);
     expect(result.historyIdAfter).toBe("335");
+  });
+
+  test("incremental sync does not widen beyond the configured Gmail query", async () => {
+    const account = await seedIntegration("360");
+    const client = new FixtureGmailClient();
+    client.historyPages = [{
+      history: [{
+        id: "361",
+        messagesAdded: [
+          { message: { id: "support-message", threadId: "support-thread" } },
+          { message: { id: "unrelated-message", threadId: "personal-thread" } },
+        ],
+      }],
+      historyId: "361",
+    }];
+    client.threadPages = [{ threads: [{ id: "support-thread" }] }];
+    client.raws.set("support-message", rawFixture({ id: "support-message", threadId: "support-thread", from: "customer@example.test", to: "support@example.test" }));
+    client.raws.set("unrelated-message", rawFixture({ id: "unrelated-message", threadId: "personal-thread", from: "friend@example.test", to: "support@example.test" }));
+
+    const result = await runIncrementalGmailSync({ integrationId: account.id, client });
+    expect(result.messagesInserted).toBe(1);
+    const rows = await getDb().select().from(messages);
+    expect(rows.map((row) => row.providerMessageId)).toEqual(["support-message"]);
   });
 
   test("expired history cursor triggers controlled full/recent recovery without duplicates", async () => {
