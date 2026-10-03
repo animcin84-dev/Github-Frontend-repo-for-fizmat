@@ -42,7 +42,8 @@ export async function connectGmailFromCode(code: string) {
     emailAddress: profile.emailAddress,
     encryptedRefreshToken,
     grantedScopes: scopes,
-    lastHistoryId: profile.historyId,
+    // Do not advance the sync cursor until the initial backfill has completed successfully.
+    lastHistoryId: null,
     syncQuery: process.env.GMAIL_SYNC_QUERY ?? "in:inbox newer_than:30d",
     backfillDays: Number(process.env.GMAIL_BACKFILL_DAYS ?? 30),
   });

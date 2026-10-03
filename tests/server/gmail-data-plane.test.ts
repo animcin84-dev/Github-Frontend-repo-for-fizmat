@@ -55,6 +55,17 @@ describe("database idempotency and synchronization", () => {
     expect(rows).toHaveLength(1);
   });
 
+  test("an unfinished initial backfill keeps the persisted cursor unset", async () => {
+    const account = await seedIntegration(null);
+    expect(account.lastHistoryId).toBeNull();
+    const client = new FixtureGmailClient();
+    client.threadPages = [{ threads: [{ id: "failing-thread" }] }];
+    client.threads.set("failing-thread", { id: "failing-thread", messages: [{ id: "missing-message", threadId: "failing-thread" }] });
+    await expect(runFullGmailSync({ integrationId: account.id, client })).rejects.toThrow(/Missing raw fixture/);
+    const [updated] = await getDb().select().from(integrationAccounts).where(eq(integrationAccounts.id, account.id));
+    expect(updated.lastHistoryId).toBeNull();
+  });
+
   test("full sync follows thread pagination and advances cursor only after processing", async () => {
     const account = await seedIntegration();
     const client = new FixtureGmailClient();

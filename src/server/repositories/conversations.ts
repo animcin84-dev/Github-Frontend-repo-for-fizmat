@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import {
   attachments,
@@ -158,7 +158,7 @@ export async function getConversationMessages(conversationId: string) {
     .select()
     .from(messages)
     .where(eq(messages.conversationId, conversationId))
-    .orderBy(asc(messages.createdAt));
+    .orderBy(asc(sql`coalesce(${messages.sentAt}, ${messages.receivedAt}, ${messages.createdAt})`));
 
   return Promise.all(rows.map(async (message) => ({
     message,
@@ -171,7 +171,7 @@ export async function getLatestConversationMessage(conversationId: string) {
     .select()
     .from(messages)
     .where(eq(messages.conversationId, conversationId))
-    .orderBy(desc(messages.createdAt))
+    .orderBy(desc(sql`coalesce(${messages.sentAt}, ${messages.receivedAt}, ${messages.createdAt})`))
     .limit(1);
   return row;
 }
