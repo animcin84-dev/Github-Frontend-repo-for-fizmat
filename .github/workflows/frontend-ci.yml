@@ -2,14 +2,33 @@ name: frontend-ci
 
 on:
   push:
-    branches: [main, "feat/phase-d-ai-quality", "feat/phase-e-controlled-automation"]
+    branches: [main, "feat/phase-d-ai-quality", "feat/phase-e-controlled-automation", "feat/phase-f2-real-gmail-data-plane"]
   pull_request:
     branches: [main]
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/support_intelligence
+      SUPPORT_DATA_MODE: mock
+      GMAIL_TOKEN_ENCRYPTION_KEY: MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      GMAIL_OAUTH_STATE_SECRET: phase-f2-ci-state-secret-not-production
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: support_intelligence
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d support_intelligence"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - name: Show verified commit
@@ -28,6 +47,12 @@ jobs:
           echo "npm_audit_exit_code=${audit_code}"
           node -e 'const a=require("./npm-audit.json"); const v=a.metadata?.vulnerabilities ?? {}; console.log(`audit_summary total=${v.total ?? 0} critical=${v.critical ?? 0} high=${v.high ?? 0} moderate=${v.moderate ?? 0} low=${v.low ?? 0}`)'
           exit 0
+      - name: Check database migrations
+        run: npm run db:check
+      - name: Apply database migrations
+        run: npm run db:migrate
+      - name: Run server/domain tests
+        run: npm run test:server
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
