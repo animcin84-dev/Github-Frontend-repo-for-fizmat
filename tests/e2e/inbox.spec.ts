@@ -12,8 +12,11 @@ test.describe("inbox critical flows", () => {
     const search = page.getByPlaceholder("Search conversations");
     await search.focus();
     await page.keyboard.press("j");
+    await expect(search).toHaveValue("j");
     await expect(page).toHaveURL(/conv-00001\?priority=high/);
 
+    await search.fill("");
+    await expect(page).toHaveURL(/conv-00001\?priority=high/);
     await search.blur();
     await page.keyboard.press("j");
     await expect(page).toHaveURL(/\/inbox\/conv-00048\?priority=high/);
