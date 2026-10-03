@@ -20,7 +20,7 @@ test.describe("Phase E Automation", () => {
 
     const inspector = page.getByLabel("Automation policy details");
     await expect(inspector).toBeVisible();
-    await expect(inspector.getByText("refund-policy-v12")).toBeVisible();
+    await expect(inspector.getByText("refund-policy-v12").first()).toBeVisible();
     await expect(inspector.getByText("Meaningful policy diff")).toBeVisible();
     await expect(inspector.getByText("Historical replay impact")).toBeVisible();
     await expect(inspector.getByText("review required")).toBeVisible();
@@ -117,8 +117,8 @@ test.describe("Phase E Automation", () => {
     await expect(inspector).toBeVisible();
     await expect(inspector.getByText("Decision vs execution")).toBeVisible();
     await expect(inspector.getByText("refund-policy-v12")).toBeVisible();
-    await expect(inspector.getByText("HUMAN APPROVED", { exact: false })).toBeVisible();
-    await expect(inspector.getByText("RESULT VERIFIED", { exact: false })).toBeVisible();
+    await expect(inspector.getByText(/human approved/i)).toBeVisible();
+    await expect(inspector.getByText(/result verified/i)).toBeVisible();
     await expect(inspector.getByText("Rollback unavailable")).toBeVisible();
   });
 
@@ -163,7 +163,7 @@ test.describe("Phase E Automation", () => {
     let blocking = results.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical");
     expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
 
-    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Close kill switch confirmation" }).click();
     await page.goto("/automation?tab=overview");
     await page.getByRole("button", { name: /Issue refund.*Alex Kim/ }).first().click();
     results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
