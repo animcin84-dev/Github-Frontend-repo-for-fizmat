@@ -20,10 +20,10 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/ui/surface";
-import type { EmergingIssue, Priority } from "@/lib/domain";
+import type { ConversationPriority, EmergingIssue, Priority } from "@/lib/domain";
 import { knowledgeSources, resolveDetail } from "@/lib/mocks/data";
 
-const severityTone: Record<Priority, "neutral" | "info" | "warning" | "danger"> = { low: "neutral", medium: "info", high: "warning", critical: "danger" };
+const severityTone: Record<Priority, "neutral" | "info" | "warning" | "danger"> = { untriaged: "neutral", low: "neutral", medium: "info", high: "warning", critical: "danger" };
 
 function Metric({ label, value }: { label: string; value: string }) {
   return <div><div className="text-[10px] uppercase tracking-[0.1em] text-[var(--muted-foreground)]">{label}</div><div className="mt-1 text-lg font-semibold">{value}</div></div>;

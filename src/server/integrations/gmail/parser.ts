@@ -4,10 +4,13 @@ import type { GmailRawMessage, NormalizedAddress, NormalizedMessage } from "@/se
 
 function addresses(value?: AddressObject | AddressObject[] | null): NormalizedAddress[] {
   const list = Array.isArray(value) ? value : value ? [value] : [];
-  return list.flatMap((item) => item.value.map((address) => ({
-    ...(address.name ? { name: address.name } : {}),
-    email: address.address.toLowerCase(),
-  })));
+  return list.flatMap((item) => item.value.flatMap((address) => {
+    if (!address.address) return [];
+    return [{
+      ...(address.name ? { name: address.name } : {}),
+      email: address.address.toLowerCase(),
+    }];
+  }));
 }
 
 export function extractPresentationText(text: string) {

@@ -28,7 +28,7 @@ export function GmailIntegration() {
   const [disconnectConfirm, setDisconnectConfirm] = useState(false);
 
   const sync = useMutation({
-    mutationFn: () => json(await fetch("/api/integrations/gmail/sync", { method: "POST" })),
+    mutationFn: async () => json(await fetch("/api/integrations/gmail/sync", { method: "POST" })),
     onSuccess: async () => {
       toast.success("Gmail synchronization completed");
       await queryClient.invalidateQueries({ queryKey: ["gmail-integration-status"] });
@@ -36,7 +36,7 @@ export function GmailIntegration() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Gmail synchronization failed"),
   });
   const watch = useMutation({
-    mutationFn: () => json(await fetch("/api/integrations/gmail/watch", { method: "POST" })),
+    mutationFn: async () => json(await fetch("/api/integrations/gmail/watch", { method: "POST" })),
     onSuccess: async () => {
       toast.success("Gmail watch renewed");
       await queryClient.invalidateQueries({ queryKey: ["gmail-integration-status"] });
@@ -44,8 +44,8 @@ export function GmailIntegration() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Gmail watch renewal failed"),
   });
   const disconnect = useMutation({
-    mutationFn: () => json<{ providerRevoked: boolean; historicalConversationsRemainAvailable: boolean }>(
-      fetch("/api/integrations/gmail/disconnect", { method: "POST" }),
+    mutationFn: async () => json<{ providerRevoked: boolean; historicalConversationsRemainAvailable: boolean }>(
+      await fetch("/api/integrations/gmail/disconnect", { method: "POST" }),
     ),
     onSuccess: async (result) => {
       setDisconnectConfirm(false);
