@@ -16,13 +16,33 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Extract Phase A project
         shell: bash
         run: |
-          base64 -d .bootstrap/phase-a.tgz.b64 > /tmp/phase-a.tgz
+          git show c1badb86a251520f6d72a740efc0bc21d1c8909c:.bootstrap/phase-a.tgz.b64 > /tmp/phase-a.tgz.b64
+          base64 -d /tmp/phase-a.tgz.b64 > /tmp/phase-a.tgz
           tar -xzf /tmp/phase-a.tgz -C .
           rm -rf .bootstrap
           rm -f .github/workflows/phase-a-bootstrap.yml
+          cat > postcss.config.mjs <<'EOF'
+          const config = {
+            plugins: {
+              "@tailwindcss/postcss": {},
+            },
+          };
+
+          export default config;
+          EOF
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("src/components/app-shell/theme-toggle.tsx")
+          s = p.read_text()
+          s = s.replace('    setDark(initial);\n', '')
+          s = s.replace('    const next = !dark;\n', '    const current = document.documentElement.dataset.theme === "dark";\n    const next = !current;\n')
+          p.write_text(s)
+          PY
       - uses: actions/setup-node@v4
         with:
           node-version: 22
