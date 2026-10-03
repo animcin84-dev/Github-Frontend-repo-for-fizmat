@@ -1,25 +1,53 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 
-export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
+const THEME_KEY = "si-theme";
+const THEME_EVENT = "si-theme-change";
 
-  useEffect(() => {
-    const saved = localStorage.getItem("si-theme");
-    const initial = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    document.documentElement.dataset.theme = initial ? "dark" : "light";
-  }, []);
+function readDarkTheme() {
+  return typeof document !== "undefined" && document.documentElement.dataset.theme === "dark";
+}
+
+function subscribe(onStoreChange: () => void) {
+  const onThemeChange = () => onStoreChange();
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== THEME_KEY) return;
+    const saved = event.newValue;
+    const nextDark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.dataset.theme = nextDark ? "dark" : "light";
+    onStoreChange();
+  };
+
+  window.addEventListener(THEME_EVENT, onThemeChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(THEME_EVENT, onThemeChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function ThemeToggle() {
+  const dark = useSyncExternalStore(subscribe, readDarkTheme, () => false);
 
   function toggle() {
-    const current = document.documentElement.dataset.theme === "dark";
-    const next = !current;
-    setDark(next);
+    const next = !readDarkTheme();
     document.documentElement.dataset.theme = next ? "dark" : "light";
-    localStorage.setItem("si-theme", next ? "dark" : "light");
+    localStorage.setItem(THEME_KEY, next ? "dark" : "light");
+    window.dispatchEvent(new Event(THEME_EVENT));
   }
 
-  return <Button variant="ghost" size="sm" onClick={toggle} aria-label={dark ? "Use light theme" : "Use dark theme"}>{dark ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={toggle}
+      aria-label={dark ? "Use light theme" : "Use dark theme"}
+      aria-pressed={dark}
+    >
+      {dark ? <Sun className="size-4" aria-hidden="true" /> : <Moon className="size-4" aria-hidden="true" />}
+    </Button>
+  );
 }
