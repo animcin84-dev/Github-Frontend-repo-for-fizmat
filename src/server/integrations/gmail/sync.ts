@@ -42,6 +42,18 @@ async function persistRawMessage(
   return raw.historyId;
 }
 
+async function listEligibleThreadIds(client: GmailClient, query: string) {
+  const eligible = new Set<string>();
+  let pageToken: string | undefined;
+  do {
+    const page = await client.listThreads({ q: query, pageToken, maxResults: 100 });
+    for (const thread of page.threads ?? []) eligible.add(thread.id);
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+  return eligible;
+}
+
+
 export async function runFullGmailSync(input: {
   integrationId: string;
   kind?: "initial" | "manual" | "recovery";
@@ -139,18 +151,30 @@ export async function runIncrementalGmailSync(input: {
     const client = clientFor(account, input.client);
     let pageToken: string | undefined;
     let historyIdAfter = account.lastHistoryId;
-    const messageIds = new Set<string>();
+    const candidateMessages = new Map<string, string>();
 
     do {
       const page = await client.listHistory({ startHistoryId: account.lastHistoryId, pageToken });
       for (const history of page.history ?? []) {
-        for (const added of history.messagesAdded ?? []) messageIds.add(added.message.id);
+        for (const added of history.messagesAdded ?? []) {
+          candidateMessages.set(added.message.id, added.message.threadId);
+        }
       }
       if (page.historyId) historyIdAfter = page.historyId;
       pageToken = page.nextPageToken;
     } while (pageToken);
 
-    for (const messageId of messageIds) await persistRawMessage(account, client, messageId, counts);
+    // Gmail history has no arbitrary q= filter. Re-evaluate the configured Gmail
+    // query server-side through threads.list so incremental sync cannot silently
+    // widen a dedicated-support scope to unrelated mailbox traffic.
+    const eligibleThreadIds = candidateMessages.size
+      ? await listEligibleThreadIds(client, account.syncQuery)
+      : new Set<string>();
+
+    for (const [messageId, threadId] of candidateMessages) {
+      if (!eligibleThreadIds.has(threadId)) continue;
+      await persistRawMessage(account, client, messageId, counts);
+    }
 
     await updateIntegrationCursor(account.id, historyIdAfter);
     await finishSyncRun(run.id, {
