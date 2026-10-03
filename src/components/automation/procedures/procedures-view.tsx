@@ -133,7 +133,9 @@ function ActionCatalog({ data }: { data: WorkspaceData }) {
 }
 
 function ExecutionPreview({ data }: { data: WorkspaceData }) {
-  const [scenario, setScenario] = useState<keyof WorkspaceData["actionPreviews"]>("refund");
+  const [scenarioRaw, setScenarioRaw] = useQueryState("preview", { defaultValue: "refund" });
+  const scenario = (scenarioRaw in data.actionPreviews ? scenarioRaw : "refund") as keyof WorkspaceData["actionPreviews"];
+  const setScenario = (value: keyof WorkspaceData["actionPreviews"]) => setScenarioRaw(value);
   const preview = data.actionPreviews[scenario];
   const blocked = preview.outcome === "blocked";
   const approval = preview.outcome === "human_approval";
