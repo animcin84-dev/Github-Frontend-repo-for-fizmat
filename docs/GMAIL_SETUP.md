@@ -83,7 +83,7 @@ GMAIL_BACKFILL_DAYS
 GMAIL_SYNC_MAX_THREADS
 ```
 
-The initial synchronization follows Gmail pagination until completion or the configured explicit thread limit. The product reports counts **after fetching**; it does not invent an exact preview count when Gmail does not provide one cheaply.
+The initial synchronization follows Gmail pagination until completion or the configured explicit thread limit. Gmail messages are fetched with `format=full`: inline text/HTML and attachment metadata are normalized, but the connector does not call `messages.attachments.get` during ingestion and does not store attachment binary blobs in PostgreSQL. The product reports counts **after fetching**; it does not invent an exact preview count when Gmail does not provide one cheaply.
 
 ## 7. Connect
 

@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 
 const criticalRoutes = [
   "/overview",
+  "/integrations",
   "/inbox",
   "/inbox/conv-00001",
   "/intelligence",

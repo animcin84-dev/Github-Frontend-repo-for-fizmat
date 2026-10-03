@@ -1,6 +1,7 @@
 import { pubsubDataSchema, pubsubEnvelopeSchema } from "@/server/contracts";
 import { SupportError } from "@/server/errors";
 import { GmailRestClient } from "@/server/integrations/gmail/gmail-client";
+import type { GmailClient } from "@/server/integrations/gmail/types";
 import { runIncrementalGmailSync } from "@/server/integrations/gmail/sync";
 import {
   getGmailIntegrationByEmail,
@@ -12,7 +13,7 @@ import {
   registerPubSubNotification,
 } from "@/server/repositories/sync";
 
-export async function renewGmailWatch(integrationId: string) {
+export async function renewGmailWatch(integrationId: string, clientOverride?: GmailClient) {
   const account = await getIntegrationById(integrationId);
   if (!account || account.status !== "connected") throw new SupportError("not_found", "Connected Gmail integration was not found", { status: 404 });
   const topic = process.env.GMAIL_PUBSUB_TOPIC;
@@ -22,7 +23,7 @@ export async function renewGmailWatch(integrationId: string) {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  const response = await new GmailRestClient(account).watch(topic, labelIds);
+  const response = await (clientOverride ?? new GmailRestClient(account)).watch(topic, labelIds);
   const expiration = new Date(Number(response.expiration));
   await updateWatchState(account.id, expiration);
   return { historyId: response.historyId, expiration: expiration.toISOString() };

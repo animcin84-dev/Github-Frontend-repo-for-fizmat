@@ -6,9 +6,11 @@ import { encryptToken } from "@/server/crypto/token-encryption";
 import { GmailHttpError } from "@/server/integrations/gmail/gmail-client";
 import { normalizeGmailMessage } from "@/server/integrations/gmail/parser";
 import { runFullGmailSync, runIncrementalGmailSync } from "@/server/integrations/gmail/sync";
+import { renewGmailWatch } from "@/server/integrations/gmail/watch";
 import { getConversationContext, persistNormalizedMessage } from "@/server/repositories/conversations";
 import { acquireSyncLock, getOutboundOperation, registerPubSubNotification, releaseSyncLock } from "@/server/repositories/sync";
-import { sendManualGmailReply } from "@/server/services/conversation-service";
+import { getConversationDetailForCurrentMode, getConversationListForCurrentMode, sendManualGmailReply } from "@/server/services/conversation-service";
+import { getGmailIntegrationStatus } from "@/server/services/integration-service";
 import { FixtureGmailClient, rawFixture } from "./fixtures/gmail";
 
 beforeAll(() => {
@@ -104,6 +106,62 @@ describe("database idempotency and synchronization", () => {
     expect(result.messagesInserted).toBe(1);
     const [updated] = await getDb().select().from(integrationAccounts).where(eq(integrationAccounts.id, account.id));
     expect(updated.lastHistoryId).toBe("fresh-history");
+  });
+
+  test("database mode exposes real conversations as untriaged without fake AI state", async () => {
+    const account = await seedIntegration("400");
+    const normalized = await normalizeGmailMessage(rawFixture({
+      id: "real-mode-message",
+      threadId: "real-mode-thread",
+      from: "Real Customer <real@example.test>",
+      to: "support@example.test",
+      subject: "Real support message",
+      body: "This should stay untriaged until Phase F3.",
+    }), account.emailAddress);
+    const persisted = await persistNormalizedMessage(account, normalized);
+    const previousMode = process.env.SUPPORT_DATA_MODE;
+    process.env.SUPPORT_DATA_MODE = "database";
+    try {
+      const list = await getConversationListForCurrentMode();
+      expect(list).toHaveLength(1);
+      expect(list[0]).toMatchObject({
+        source: "gmail",
+        providerLabel: "Gmail",
+        priority: "untriaged",
+        aiState: "unanalyzed",
+        analysisState: "pending",
+      });
+      const detail = await getConversationDetailForCurrentMode(persisted.conversationId);
+      expect(detail).toMatchObject({
+        source: "gmail",
+        analysisState: "pending",
+        replyMode: "gmail_real",
+        priority: "untriaged",
+      });
+      expect(detail?.evidence).toEqual([]);
+      expect(detail?.policyDecisions).toEqual([]);
+      expect(detail?.aiDraft).toBeUndefined();
+
+      const integration = await getGmailIntegrationStatus();
+      expect(integration.storedThreads).toBe(1);
+      expect(integration.storedMessages).toBe(1);
+    } finally {
+      if (previousMode === undefined) delete process.env.SUPPORT_DATA_MODE;
+      else process.env.SUPPORT_DATA_MODE = previousMode;
+    }
+  });
+
+  test("renewing Gmail watch persists expiration without skipping the sync history cursor", async () => {
+    process.env.GMAIL_PUBSUB_TOPIC = "projects/test/topics/gmail";
+    const account = await seedIntegration("cursor-before-watch");
+    const client = new FixtureGmailClient();
+    client.profile.historyId = "watch-start-history";
+    const result = await renewGmailWatch(account.id, client);
+    const [updated] = await getDb().select().from(integrationAccounts).where(eq(integrationAccounts.id, account.id));
+    expect(result.historyId).toBe("watch-start-history");
+    expect(updated.lastHistoryId).toBe("cursor-before-watch");
+    expect(updated.watchExpiration).toBeTruthy();
+    delete process.env.GMAIL_PUBSUB_TOPIC;
   });
 
   test("duplicate Pub/Sub notification and overlapping sync lock are rejected idempotently", async () => {
