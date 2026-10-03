@@ -1,2 +1,7 @@
-import { PlannedSurface } from "@/components/ui/planned-surface";
-export default function Page() { return <PlannedSurface title="Automation" subtitle="Per-intent autonomy and policy boundaries" focus={["Maturity ladder", "Allowed / confirm / approve / blocked", "Rule simulation", "Recent decisions"]} />; }
+import { Suspense } from "react";
+import { AutomationWorkspace } from "@/components/automation/automation-workspace";
+import { LoadingState } from "@/components/ui/page-state";
+
+export default function AutomationPage() {
+  return <Suspense fallback={<LoadingState label="Loading automation control plane…" />}><AutomationWorkspace /></Suspense>;
+}
