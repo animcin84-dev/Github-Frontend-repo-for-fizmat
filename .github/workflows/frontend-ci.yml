@@ -19,6 +19,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Dependency security audit
+        shell: bash
+        run: |
+          set +e
+          npm audit --json | tee npm-audit.json
+          audit_code=${PIPESTATUS[0]}
+          echo "npm_audit_exit_code=${audit_code}"
+          node -e 'const a=require("./npm-audit.json"); const v=a.metadata?.vulnerabilities ?? {}; console.log(`audit_summary total=${v.total ?? 0} critical=${v.critical ?? 0} high=${v.high ?? 0} moderate=${v.moderate ?? 0} low=${v.low ?? 0}`)'
+          exit 0
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
@@ -33,5 +42,6 @@ jobs:
           path: |
             playwright-report
             test-results
+            npm-audit.json
           if-no-files-found: ignore
           retention-days: 7
