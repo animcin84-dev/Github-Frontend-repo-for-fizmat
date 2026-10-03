@@ -118,9 +118,9 @@ function ReadinessSummary({ detail }: { detail: ConversationDetail }) {
   return <div className="grid grid-cols-2 gap-2 text-[11px]"><div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-2"><div className="text-[var(--muted-foreground)]">Knowledge coverage</div><div className={cn("mt-1 font-medium", noEvidence ? "text-[var(--danger)]" : stale ? "text-[var(--warning)]" : "text-[var(--success)]")}>{noEvidence ? "Missing" : stale ? "Needs review" : "Supported"}</div></div><div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-2"><div className="text-[var(--muted-foreground)]">Action policy</div><div className={cn("mt-1 font-medium", blocked ? "text-[var(--danger)]" : "text-[var(--success)]")}>{blocked ? "Blocked / escalate" : "Allowed with current gate"}</div></div></div>;
 }
 
-function ThreadPanel({ detail }: { detail: ConversationDetail }) {
+function ThreadPanel({ detail, onOpenInspector }: { detail: ConversationDetail; onOpenInspector?: () => void }) {
   const pending = detail.analysisState === "pending";
-  return <div className="flex h-full min-h-0 flex-col bg-[var(--background)]"><div className="flex h-[58px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface-1)] px-4"><div className="grid size-8 place-items-center rounded-full bg-[var(--surface-2)] text-xs font-semibold">{detail.customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h2 className="truncate text-sm font-semibold">{detail.subject}</h2>{detail.source === "gmail" ? <Badge>Gmail</Badge> : null}<Badge tone={priorityTone[detail.priority]}>{detail.priority}</Badge></div><div className="mt-0.5 flex items-center gap-2 text-[11px] text-[var(--muted-foreground)]"><span>{detail.customer.name}</span><span>·</span><span>{detail.customer.company ?? detail.customer.email}</span><span>·</span><span>{pending ? "Analysis pending" : detail.category}</span></div></div>{detail.policyDecisions[0] ? <Link aria-label="Open action preview" href={`/automation?tab=procedures&preview=${automationPreviewForDecision(detail.policyDecisions[0])}`} className="grid size-8 shrink-0 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-1)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><ChevronRight className="size-4" /></Link> : null}<Button variant="ghost" size="sm" aria-label="More conversation actions"><MoreHorizontal className="size-4" /></Button></div>
+  return <div className="flex h-full min-h-0 flex-col bg-[var(--background)]"><div className="flex h-[58px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface-1)] px-4"><div className="grid size-8 place-items-center rounded-full bg-[var(--surface-2)] text-xs font-semibold">{detail.customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h2 className="truncate text-sm font-semibold">{detail.subject}</h2>{detail.source === "gmail" ? <Badge>Gmail</Badge> : null}<Badge tone={priorityTone[detail.priority]}>{detail.priority}</Badge></div><div className="mt-0.5 flex items-center gap-2 text-[11px] text-[var(--muted-foreground)]"><span>{detail.customer.name}</span><span>·</span><span>{detail.customer.company ?? detail.customer.email}</span><span>·</span><span>{pending ? "Analysis pending" : detail.category}</span></div></div>{onOpenInspector ? <Button size="sm" onClick={onOpenInspector}>{detail.replyMode === "gmail_real" ? <><Send className="size-3.5" />Reply</> : <><Sparkles className="size-3.5" />AI & evidence</>}</Button> : null}{detail.policyDecisions[0] ? <Link aria-label="Open action preview" href={`/automation?tab=procedures&preview=${automationPreviewForDecision(detail.policyDecisions[0])}`} className="grid size-8 shrink-0 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-1)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><ChevronRight className="size-4" /></Link> : null}<Button variant="ghost" size="sm" aria-label="More conversation actions"><MoreHorizontal className="size-4" /></Button></div>
   <div className="min-h-0 flex-1 overflow-auto px-4 py-4"><div className="mx-auto max-w-3xl space-y-4">{pending ? <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] p-3"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-semibold"><Sparkles className="size-3.5 text-[var(--muted-foreground)]" />AI analysis</div><Badge tone="warning">Pending</Badge></div><div className="mt-3 grid gap-2 text-xs sm:grid-cols-2"><div className="rounded-md bg-[var(--surface-2)] p-2.5"><div className="text-[10px] uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Knowledge evidence</div><div className="mt-1 font-semibold">Not generated yet</div></div><div className="rounded-md bg-[var(--surface-2)] p-2.5"><div className="text-[10px] uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Automation</div><div className="mt-1 font-semibold">Not evaluated</div></div></div><p className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">This is real provider data. Phase F2 does not run fake triage, RAG, draft generation or automation on newly synced Gmail messages.</p></div> : <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] p-3"><div className="flex items-center gap-2 text-xs font-semibold"><Sparkles className="size-3.5 text-[var(--ai)]" />AI summary</div><p className="mt-2 text-sm leading-6 text-[var(--foreground)]">{detail.summary}</p>{detail.triageSignals.length ? <div className="mt-3 flex flex-wrap gap-1.5">{detail.triageSignals.map((signal) => <Badge key={signal.label} tone={signal.kind === "risk" ? "warning" : signal.kind === "policy" ? "ai" : "neutral"}>{signal.label}</Badge>)}</div> : null}</div>}
   <div className="space-y-3">{detail.messages.map((message) => <div key={message.id} className={cn("flex", message.author === "agent" ? "justify-end" : "justify-start")}><div className={cn("max-w-[82%] rounded-lg border px-3 py-2.5 text-sm leading-6", message.author === "customer" && "border-[var(--border)] bg-[var(--surface-1)]", message.author === "agent" && "border-[color-mix(in_srgb,var(--accent)_30%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface-1))]", message.author === "system" && "max-w-full border-dashed bg-[var(--surface-2)] text-xs text-[var(--muted-foreground)]", message.author === "ai" && "border-[color-mix(in_srgb,var(--ai)_30%,var(--border))] bg-[color-mix(in_srgb,var(--ai)_7%,var(--surface-1))]")}><div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">{message.author === "customer" ? <UserRound className="size-3" /> : message.author === "agent" ? <MessageSquareText className="size-3" /> : message.author === "ai" ? <Bot className="size-3" /> : <FileText className="size-3" />}{message.author}<span className="font-normal normal-case tracking-normal">· {new Date(message.createdAt).toLocaleString()}</span></div>{detail.source === "gmail" ? <div className="mb-2 text-[10px] leading-4 text-[var(--muted-foreground)]">{message.from ? <>From {message.from}</> : null}{message.to?.length ? <> · To {message.to.join(", ")}</> : null}{message.providerMessageId ? <div className="font-mono">Gmail message {message.providerMessageId}</div> : null}</div> : null}<div className="whitespace-pre-wrap">{message.body}</div>{message.attachments?.length ? <div className="mt-2 flex flex-wrap gap-1">{message.attachments.map((attachment) => <Badge key={`${message.id}-${attachment.filename}`}>{attachment.filename} · {attachment.mimeType}</Badge>)}</div> : null}</div></div>)}</div></div></div>
   </div>;
@@ -163,7 +163,7 @@ function EvidenceInspector({ detail, draftText, setDraftText, actionState, setAc
 
     return <div className="flex h-full min-h-0 flex-col bg-[var(--surface-1)]"><div className="flex h-[58px] shrink-0 items-center justify-between border-b border-[var(--border)] px-3"><div><div className="text-xs font-semibold">Real Gmail reply</div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Explicit operator action · no AI auto-send</div></div><Badge tone="success">REAL</Badge></div>
       <div className="min-h-0 flex-1 overflow-auto p-3"><div className="space-y-3">
-        <ReadinessSummary detail={detail} />
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3"><div className="flex items-center justify-between gap-2"><div className="text-xs font-semibold">Provider provenance</div><Badge>Gmail</Badge></div><div className="mt-2 break-all font-mono text-[10px] text-[var(--muted-foreground)]">Integration {detail.integrationAccountId} · thread {detail.providerConversationId}</div></section>
         <section className="rounded-lg border border-[var(--border)] p-3"><div className="text-xs font-semibold">Analysis boundary</div><div className="mt-3 grid gap-2 text-xs"><div className="flex items-center justify-between"><span>AI analysis</span><Badge tone="warning">Pending</Badge></div><div className="flex items-center justify-between"><span>Knowledge evidence</span><Badge>Not generated</Badge></div><div className="flex items-center justify-between"><span>Automation</span><Badge>Not evaluated</Badge></div></div></section>
         <section className="rounded-lg border border-[var(--border)]"><div className="border-b border-[var(--border)] px-3 py-2"><div className="flex items-center gap-2 text-xs font-semibold"><Mail className="size-3.5" />Manual reply</div></div><div className="p-3">
           <textarea aria-label="Manual Gmail reply" value={draftText} onChange={(event) => { setDraftText(event.target.value); if (actionState === "failed") setActionState(""); }} disabled={actionState === "sent" || sendingRealReply} rows={9} placeholder="Write a deliberate human reply…" className="w-full resize-none rounded-md border border-[var(--border)] bg-[var(--background)] p-2.5 text-xs leading-5 outline-none focus:ring-2 focus:ring-[var(--focus-ring)] disabled:opacity-60" />
@@ -174,7 +174,7 @@ function EvidenceInspector({ detail, draftText, setDraftText, actionState, setAc
     </div>;
   }
 
-  return <div className="flex h-full min-h-0 flex-col bg-[var(--surface-1)]"><div className="flex h-[58px] shrink-0 items-center justify-between border-b border-[var(--border)] px-3"><div><div className="text-xs font-semibold">AI & evidence</div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Measured readiness, not self-reported confidence</div></div><Badge tone={blocked ? "danger" : "success"}>{blocked ? "Needs human" : "Grounded"}</Badge></div>
+  return <div className="flex h-full min-h-0 flex-col bg-[var(--surface-1)]"><div className="flex h-[58px] shrink-0 items-center justify-between border-b border-[var(--border)] px-3"><div><div className="flex items-center gap-1.5 text-xs font-semibold">AI & evidence <Badge>SIMULATION</Badge></div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Deterministic fixture mode · measured readiness, not self-reported confidence</div></div><Badge tone={blocked ? "danger" : "success"}>{blocked ? "Needs human" : "Grounded"}</Badge></div>
   <div className="min-h-0 flex-1 overflow-auto p-3"><div className="space-y-3"><ReadinessSummary detail={detail} />
   <section className="rounded-lg border border-[var(--border)]"><div className="border-b border-[var(--border)] px-3 py-2"><div className="flex items-center gap-2 text-xs font-semibold"><FileText className="size-3.5" />Evidence <Badge>{detail.evidence.length}</Badge></div></div><div className="divide-y divide-[var(--border)]">{detail.evidence.length ? detail.evidence.map((source) => {
     const knowledgeSourceId = resolveKnowledgeSourceId(source);
@@ -188,16 +188,26 @@ function EvidenceInspector({ detail, draftText, setDraftText, actionState, setAc
 function ConversationWorkspace({ detail, showInspector }: { detail: ConversationDetail; showInspector: boolean }) {
   const [draftText, setDraftText] = useState(detail.aiDraft?.text ?? "");
   const [actionState, setActionState] = useState("");
+  const [inspectorOpen, setInspectorOpen] = useState(false);
 
-  return <Group orientation="horizontal" className="h-full">
-    <Panel id="thread" minSize="420px"><ThreadPanel detail={detail} /></Panel>
-    {showInspector ? <>
-      <Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" />
-      <Panel id="inspector" defaultSize="390px" minSize="340px" maxSize="460px" groupResizeBehavior="preserve-pixel-size">
+  return <div className="relative h-full">
+    <Group orientation="horizontal" className="h-full">
+      <Panel id="thread" minSize="420px"><ThreadPanel detail={detail} onOpenInspector={showInspector ? undefined : () => setInspectorOpen(true)} /></Panel>
+      {showInspector ? <>
+        <Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" />
+        <Panel id="inspector" defaultSize="390px" minSize="340px" maxSize="460px" groupResizeBehavior="preserve-pixel-size">
+          <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} />
+        </Panel>
+      </> : null}
+    </Group>
+    {!showInspector && inspectorOpen ? <>
+      <button aria-label="Close conversation inspector" onClick={() => setInspectorOpen(false)} className="fixed inset-0 top-12 z-40 bg-black/30" />
+      <aside role="dialog" aria-modal="true" aria-label={detail.replyMode === "gmail_real" ? "Gmail reply inspector" : "AI and evidence inspector"} className="fixed inset-y-12 right-0 z-50 w-[min(94vw,440px)] border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl">
+        <button onClick={() => setInspectorOpen(false)} aria-label="Close conversation inspector" className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-md bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button>
         <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} />
-      </Panel>
+      </aside>
     </> : null}
-  </Group>;
+  </div>;
 }
 
 function MobileConversationWorkspace({ detail, onBack }: { detail: ConversationDetail; onBack: () => void }) {
@@ -208,12 +218,12 @@ function MobileConversationWorkspace({ detail, onBack }: { detail: ConversationD
   return <div className="flex h-full min-h-0 flex-col bg-[var(--background)]">
     <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-1)] px-2">
       <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="size-3.5" />Inbox</Button>
-      <Button size="sm" onClick={() => setEvidenceOpen(true)}><Sparkles className="size-3.5" />AI & evidence</Button>
+      <Button size="sm" onClick={() => setEvidenceOpen(true)}>{detail.replyMode === "gmail_real" ? <><Send className="size-3.5" />Reply</> : <><Sparkles className="size-3.5" />AI & evidence</>}</Button>
     </div>
     <div className="min-h-0 flex-1"><ThreadPanel detail={detail} /></div>
     {evidenceOpen ? <>
       <button aria-label="Close AI and evidence inspector" onClick={() => setEvidenceOpen(false)} className="fixed inset-0 top-12 z-40 bg-black/30" />
-      <aside role="dialog" aria-modal="true" aria-label="AI and evidence inspector" className="fixed inset-y-12 right-0 z-50 w-[min(94vw,420px)] border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl">
+      <aside role="dialog" aria-modal="true" aria-label={detail.replyMode === "gmail_real" ? "Gmail reply inspector" : "AI and evidence inspector"} className="fixed inset-y-12 right-0 z-50 w-[min(94vw,420px)] border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl">
         <button onClick={() => setEvidenceOpen(false)} aria-label="Close AI and evidence inspector" className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-md bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button>
         <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} />
       </aside>
@@ -248,6 +258,15 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
     const items = listQuery.data ?? [];
     return { all: items.length, unread: items.filter((item) => item.unread).length, sla: items.filter((item) => item.slaRisk !== "none").length, critical: items.filter((item) => item.priority === "critical").length };
   }, [listQuery.data]);
+
+  useEffect(() => {
+    if (!listQuery.data?.length || initialConversationId) return;
+    if (listQuery.data.some((item) => item.id === selectedId)) return;
+    const first = listQuery.data[0];
+    setSelectedId(first.id);
+    const query = searchParams.toString();
+    router.replace(`/inbox/${first.id}${query ? `?${query}` : ""}`, { scroll: false });
+  }, [initialConversationId, listQuery.data, router, searchParams, selectedId]);
 
 
   const select = useCallback((id: string) => {
@@ -301,6 +320,6 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
     {flags.showQueues ? <><Panel id="queues" defaultSize="196px" minSize="160px" maxSize="240px" groupResizeBehavior="preserve-pixel-size"><QueueRail counts={counts} setPriority={setPriority} setSla={setSla} /></Panel><Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" /></> : null}
     <Panel id="list" defaultSize="350px" minSize="300px" maxSize="430px" groupResizeBehavior="preserve-pixel-size">{listPane}</Panel>
     <Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" />
-    <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <ConversationWorkspace key={detail.id} detail={detail} showInspector={flags.showInspector} /> : <LoadingState label="Loading conversation detail…" />}</div></Panel>
+    <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <ConversationWorkspace key={detail.id} detail={detail} showInspector={flags.showInspector} /> : integrationQuery.data?.mode === "database" && counts.all === 0 ? <div className="grid h-full place-items-center p-6 text-center"><div><Mail className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No Gmail conversation selected</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Run a sync after connecting the dedicated support mailbox.</div></div></div> : <LoadingState label="Loading conversation detail…" />}</div></Panel>
   </Group></div>;
 }
