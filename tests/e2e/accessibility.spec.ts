@@ -8,6 +8,10 @@ const criticalRoutes = [
   "/intelligence",
   "/intelligence/issue-duplicate-payment",
   "/knowledge",
+  "/ai-quality",
+  "/ai-quality?tab=failures",
+  "/ai-quality?tab=evaluations",
+  "/ai-quality?tab=shadow",
 ];
 
 for (const route of criticalRoutes) {
