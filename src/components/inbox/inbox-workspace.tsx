@@ -246,7 +246,16 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
 
   const listQuery = useQuery({ queryKey: ["conversations"], queryFn: getConversationList });
   const integrationQuery = useQuery({ queryKey: ["inbox-integration-status"], queryFn: getInboxIntegrationStatus });
-  const detailQuery = useQuery({ queryKey: ["conversation", selectedId], queryFn: () => getConversationDetail(selectedId) });
+  const resolvedSelectedId = useMemo(() => {
+    const items = listQuery.data ?? [];
+    if (!items.length || initialConversationId || items.some((item) => item.id === selectedId)) return selectedId;
+    return items[0].id;
+  }, [initialConversationId, listQuery.data, selectedId]);
+  const detailQuery = useQuery({
+    queryKey: ["conversation", resolvedSelectedId],
+    queryFn: () => getConversationDetail(resolvedSelectedId),
+    enabled: Boolean(resolvedSelectedId),
+  });
 
   const filtered = useMemo(() => {
     const items = listQuery.data ?? [];
@@ -260,13 +269,10 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
   }, [listQuery.data]);
 
   useEffect(() => {
-    if (!listQuery.data?.length || initialConversationId) return;
-    if (listQuery.data.some((item) => item.id === selectedId)) return;
-    const first = listQuery.data[0];
-    setSelectedId(first.id);
+    if (!resolvedSelectedId || resolvedSelectedId === selectedId || initialConversationId) return;
     const query = searchParams.toString();
-    router.replace(`/inbox/${first.id}${query ? `?${query}` : ""}`, { scroll: false });
-  }, [initialConversationId, listQuery.data, router, searchParams, selectedId]);
+    router.replace(`/inbox/${resolvedSelectedId}${query ? `?${query}` : ""}`, { scroll: false });
+  }, [initialConversationId, resolvedSelectedId, router, searchParams, selectedId]);
 
 
   const select = useCallback((id: string) => {
@@ -283,7 +289,7 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
       if (!["j", "k", "ArrowDown", "ArrowUp"].includes(event.key)) return;
       if ((event.key === "ArrowDown" || event.key === "ArrowUp") && !event.altKey) return;
       event.preventDefault();
-      const index = filtered.findIndex((item) => item.id === selectedId);
+      const index = filtered.findIndex((item) => item.id === resolvedSelectedId);
       if (index < 0) return;
       const delta = event.key === "j" || event.key === "ArrowDown" ? 1 : -1;
       const next = filtered[Math.min(filtered.length - 1, Math.max(0, index + delta))];
@@ -291,7 +297,7 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [filtered, selectedId, select]);
+  }, [filtered, resolvedSelectedId, select]);
 
   if (listQuery.isLoading || integrationQuery.isLoading) return <LoadingState label="Loading inbox…" />;
   const detail = detailQuery.data;
@@ -302,7 +308,7 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
       <div className="flex items-center gap-1 text-[10px] text-[var(--muted-foreground)]"><kbd className="rounded border px-1">J/K</kbd><span>next</span></div>
     </div>
     <FilterBar q={q} setQ={setQ} priority={priority} setPriority={setPriority} channel={channel} setChannel={setChannel} ai={ai} setAi={setAi} sla={sla} setSla={setSla} />
-    {filtered.length ? <div className="min-h-0 flex-1"><ConversationList items={filtered} selectedId={selectedId} onSelect={select} /></div> : integrationQuery.data?.mode === "database" && counts.all === 0 ? <div className="grid flex-1 place-items-center p-6 text-center"><div><Mail className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No Gmail conversations synced yet.</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">This real inbox is empty; it does not fall back to deterministic fixtures.</div><Button className="mt-3" size="sm" onClick={async () => { try { const result = await syncInboxNow(); toast.success("Gmail sync complete", { description: `${result.messagesInserted} imported · ${result.messagesSkipped} duplicates skipped` }); await queryClient.invalidateQueries({ queryKey: ["conversations"] }); await queryClient.invalidateQueries({ queryKey: ["inbox-integration-status"] }); } catch (error) { toast.error(error instanceof Error ? error.message : "Sync failed"); } }}><Mail className="size-3.5" />Sync now</Button></div></div> : <div className="grid flex-1 place-items-center p-6 text-center"><div><Search className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No conversations match</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Clear one or more URL-backed filters.</div></div></div>}
+    {filtered.length ? <div className="min-h-0 flex-1"><ConversationList items={filtered} selectedId={resolvedSelectedId} onSelect={select} /></div> : integrationQuery.data?.mode === "database" && counts.all === 0 ? <div className="grid flex-1 place-items-center p-6 text-center"><div><Mail className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No Gmail conversations synced yet.</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">This real inbox is empty; it does not fall back to deterministic fixtures.</div><Button className="mt-3" size="sm" onClick={async () => { try { const result = await syncInboxNow(); toast.success("Gmail sync complete", { description: `${result.messagesInserted} imported · ${result.messagesSkipped} duplicates skipped` }); await queryClient.invalidateQueries({ queryKey: ["conversations"] }); await queryClient.invalidateQueries({ queryKey: ["inbox-integration-status"] }); } catch (error) { toast.error(error instanceof Error ? error.message : "Sync failed"); } }}><Mail className="size-3.5" />Sync now</Button></div></div> : <div className="grid flex-1 place-items-center p-6 text-center"><div><Search className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No conversations match</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Clear one or more URL-backed filters.</div></div></div>}
   </div>;
 
   if (flags.narrow) {
