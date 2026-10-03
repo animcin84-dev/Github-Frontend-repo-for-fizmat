@@ -1,0 +1,45 @@
+name: phase-a-bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".bootstrap/phase-a.tgz.b64"
+      - ".github/workflows/phase-a-bootstrap.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract Phase A project
+        shell: bash
+        run: |
+          base64 -d .bootstrap/phase-a.tgz.b64 > /tmp/phase-a.tgz
+          tar -xzf /tmp/phase-a.tgz -C .
+          rm -rf .bootstrap
+          rm -f .github/workflows/phase-a-bootstrap.yml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+      - name: Commit verified Phase A
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: implement Phase A frontend foundation"
+          git push origin HEAD:main
