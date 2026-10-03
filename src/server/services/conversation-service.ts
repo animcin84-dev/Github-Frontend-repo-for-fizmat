@@ -16,6 +16,7 @@ import {
 import {
   createOrGetOutboundOperation,
   claimOutboundOperation,
+  getOutboundOperation,
   markOutboundFailed,
   markOutboundSent,
 } from "@/server/repositories/sync";
