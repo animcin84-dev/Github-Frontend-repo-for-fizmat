@@ -215,3 +215,164 @@ export interface AIQualityMetrics {
   reopenRate: number;
   unsupportedClaimRate: number;
 }
+
+
+export type KnowledgeHealthState = "healthy" | "aging" | "stale" | "conflict" | "missing";
+export type AIOutcomeDecision = "unchanged" | "minor_edit" | "major_edit" | "rejected" | "human_takeover";
+export type AIFailureType =
+  | "unsupported_claim"
+  | "missing_knowledge"
+  | "stale_knowledge"
+  | "conflicting_sources"
+  | "wrong_intent"
+  | "wrong_priority"
+  | "policy_block"
+  | "identity_missing"
+  | "incorrect_action"
+  | "poor_tone"
+  | "human_takeover"
+  | "customer_rejected"
+  | "reopened"
+  | "retrieval_failure";
+
+export type FailureCause = "knowledge" | "policy" | "retrieval" | "intent_triage" | "identity" | "generation" | "other";
+
+export interface ModelVersion {
+  id: string;
+  label: string;
+  deployedAt: string;
+  note: string;
+}
+
+export interface PromptVersion {
+  id: string;
+  label: string;
+}
+
+export interface RetrievalVersion {
+  id: string;
+  label: string;
+}
+
+export interface AIOutcome {
+  id: string;
+  conversationId: string;
+  customerName: string;
+  locale: "en" | "ru-KZ" | "kk-KZ" | "ru-kk-mixed";
+  intent: string;
+  channel: Channel;
+  modelVersion: string;
+  promptVersion: string;
+  retrieverVersion: string;
+  policyVersion: string;
+  knowledgeSnapshot: string;
+  knowledgeState: KnowledgeHealthState;
+  sourceIds: string[];
+  decision: AIOutcomeDecision;
+  reopened: boolean;
+  unsupportedClaim: boolean;
+  timestamp: string;
+}
+
+export interface AIFailure {
+  id: string;
+  outcomeId: string;
+  conversationId: string;
+  customerName: string;
+  locale: AIOutcome["locale"];
+  intent: string;
+  type: AIFailureType;
+  severity: Priority;
+  knowledgeState: KnowledgeHealthState;
+  sourceIds: string[];
+  modelVersion: string;
+  outcome: string;
+  channel: Channel;
+  timestamp: string;
+  rootCause: FailureCause;
+  trace: {
+    customerMessage: string;
+    triage: string;
+    retrieval: string[];
+    draft: string;
+    problem: string;
+    humanAction: string;
+    finalOutcome: string;
+  };
+  relatedIssueId?: string;
+}
+
+export interface QualityTrendPoint {
+  timestamp: string;
+  acceptedRate: number;
+  majorEditRate: number;
+  rejectionRate: number;
+  unsupportedClaimRate: number;
+  reopenRate: number;
+}
+
+export interface EvaluationSuite {
+  id: string;
+  name: string;
+  description: string;
+  passRate: number;
+  previousPassRate: number;
+  caseCount: number;
+  lastRunAt: string;
+  status: "passing" | "watch" | "regression";
+}
+
+export interface EvaluationCase {
+  id: string;
+  suiteId: string;
+  input: string;
+  expectedBehavior: string;
+  observedBehavior: string;
+  evidence: string;
+  result: "passed" | "failed";
+  change: "regression" | "improved" | "unchanged";
+  version: string;
+}
+
+export interface EvaluationRun {
+  id: string;
+  modelVersion: string;
+  previousModelVersion: string;
+  overallPassRate: number;
+  previousPassRate: number;
+  runAt: string;
+  segmentChanges: Array<{ segment: string; deltaPercentagePoints: number; note: string }>;
+}
+
+export interface ShadowSimulation {
+  id: string;
+  conversationId: string;
+  intent: string;
+  locale: AIOutcome["locale"];
+  classification: "draft_possible" | "human_review" | "human_only" | "insufficient_knowledge";
+  actualResolution: string;
+  aiProposal: string;
+  differences: Array<"wording" | "missing_fact" | "policy_mismatch" | "action_mismatch">;
+  sourceIds: string[];
+}
+
+export interface AutomationReadiness {
+  intent: string;
+  sampleSize: number;
+  coverage: "strong" | "medium" | "weak" | "missing";
+  freshness: "fresh" | "aging" | "stale" | "—";
+  conflicts: "none" | "present";
+  policy: "auto_allowed" | "human_approval" | "human_only";
+  historicalPassRate: number;
+  recommendation: "controlled_automation" | "copilot_only" | "never_autonomous";
+}
+
+export interface QualityRecommendation {
+  id: string;
+  priority: "high" | "medium";
+  topic: string;
+  evidence: string[];
+  recommendation: string;
+  relatedKnowledgeId?: string;
+  relatedIssueId?: string;
+}

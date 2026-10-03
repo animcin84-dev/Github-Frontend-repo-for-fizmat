@@ -1,3 +1,19 @@
+import {
+  aiFailures,
+  aiOutcomes,
+  automationReadiness,
+  evaluationCases,
+  evaluationRun,
+  evaluationSuites,
+  modelVersions,
+  promptVersions,
+  qualityOutcomeSummary,
+  qualityRecommendations,
+  qualityTrend,
+  retrievalVersions,
+  shadowSimulations,
+  shadowSummary,
+} from "@/lib/mocks/ai-quality-data";
 import { aiQuality, conversations, emergingIssues, knowledgeConflicts, knowledgeCoverage, knowledgeGaps, knowledgeSources, resolveDetail, volumeSeries } from "@/lib/mocks/data";
 import type { ConversationDetail } from "@/lib/domain";
 
@@ -60,4 +76,26 @@ export async function getKnowledgeWorkspace() {
 export async function getKnowledgeSource(id: string) {
   await wait(55);
   return knowledgeSources.find((source) => source.id === id);
+}
+
+
+export async function getAIQualityWorkspace() {
+  await wait(95);
+  return {
+    outcomes: aiOutcomes,
+    failures: aiFailures,
+    outcomeSummary: qualityOutcomeSummary,
+    trend: qualityTrend,
+    modelVersions,
+    promptVersions,
+    retrievalVersions,
+    evaluationSuites,
+    evaluationCases,
+    evaluationRun,
+    shadowSummary,
+    automationReadiness,
+    shadowSimulations,
+    recommendations: qualityRecommendations,
+    knowledgeSources,
+  };
 }
