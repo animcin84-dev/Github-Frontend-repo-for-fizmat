@@ -118,7 +118,7 @@ test.describe("Phase E Automation", () => {
     await expect(inspector.getByText("Decision vs execution")).toBeVisible();
     await expect(inspector.getByText("refund-policy-v12", { exact: true })).toBeVisible();
     await expect(inspector.getByText(/human approved/i)).toBeVisible();
-    await expect(inspector.getByText(/result verified/i)).toBeVisible();
+    await expect(inspector.getByText("result verified", { exact: true })).toBeVisible();
     await expect(inspector.getByText("Rollback unavailable")).toBeVisible();
   });
 
