@@ -10,7 +10,7 @@ import { renewGmailWatch } from "@/server/integrations/gmail/watch";
 import { getConversationContext, persistNormalizedMessage } from "@/server/repositories/conversations";
 import { acquireSyncLock, getOutboundOperation, registerPubSubNotification, releaseSyncLock } from "@/server/repositories/sync";
 import { getConversationDetailForCurrentMode, getConversationListForCurrentMode, sendManualGmailReply } from "@/server/services/conversation-service";
-import { getGmailIntegrationStatus } from "@/server/services/integration-service";
+import { getGmailIntegrationStatus, updateActiveGmailSettings } from "@/server/services/integration-service";
 import { FixtureGmailClient, rawFixture } from "./fixtures/gmail";
 
 beforeAll(() => {
@@ -149,6 +149,18 @@ describe("database idempotency and synchronization", () => {
       if (previousMode === undefined) delete process.env.SUPPORT_DATA_MODE;
       else process.env.SUPPORT_DATA_MODE = previousMode;
     }
+  });
+
+  test("Gmail sync query and backfill settings persist without vendor-specific domain coupling", async () => {
+    await seedIntegration("450");
+    const updated = await updateActiveGmailSettings({
+      backfillDays: 7,
+      syncQuery: "label:support newer_than:7d",
+    });
+    expect(updated).toMatchObject({ backfillDays: 7, syncQuery: "label:support newer_than:7d" });
+    const status = await getGmailIntegrationStatus();
+    expect(status.backfillDays).toBe(7);
+    expect(status.syncQuery).toBe("label:support newer_than:7d");
   });
 
   test("renewing Gmail watch persists expiration without skipping the sync history cursor", async () => {

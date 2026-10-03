@@ -123,3 +123,11 @@ export async function getLatestSyncRun(integrationAccountId: string) {
     .limit(1);
   return row;
 }
+
+export async function updateIntegrationSettings(id: string, input: { syncQuery?: string; backfillDays?: number }) {
+  const [row] = await getDb().update(integrationAccounts).set({
+    ...(input.syncQuery !== undefined ? { syncQuery: input.syncQuery } : {}),
+    ...(input.backfillDays !== undefined ? { backfillDays: input.backfillDays } : {}),
+  }).where(eq(integrationAccounts.id, id)).returning();
+  return row;
+}

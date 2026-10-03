@@ -17,6 +17,7 @@ import {
   getIntegrationDataCounts,
   getLatestSyncRun,
   upsertGmailIntegration,
+  updateIntegrationSettings,
 } from "@/server/repositories/integrations";
 
 export function supportDataMode(): "mock" | "database" {
@@ -126,5 +127,17 @@ export async function disconnectActiveGmail() {
     watchStopped,
     providerRevoked,
     historicalConversationsRemainAvailable: true,
+  };
+}
+
+export async function updateActiveGmailSettings(input: { syncQuery?: string; backfillDays?: number }) {
+  const account = await getActiveGmailIntegration();
+  if (!account) throw new SupportError("not_found", "No connected Gmail account", { status: 404 });
+  const row = await updateIntegrationSettings(account.id, input);
+  if (!row) throw new SupportError("database_failed", "Could not update Gmail integration settings");
+  return {
+    id: row.id,
+    syncQuery: row.syncQuery,
+    backfillDays: row.backfillDays,
   };
 }

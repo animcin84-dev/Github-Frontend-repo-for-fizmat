@@ -26,6 +26,9 @@ export function GmailIntegration() {
   const params = useSearchParams();
   const statusQuery = useQuery({ queryKey: ["gmail-integration-status"], queryFn: status });
   const [disconnectConfirm, setDisconnectConfirm] = useState(false);
+  const [editingSettings, setEditingSettings] = useState(false);
+  const [backfillDays, setBackfillDays] = useState(30);
+  const [syncQuery, setSyncQuery] = useState("");
 
   const sync = useMutation({
     mutationFn: async () => json(await fetch("/api/integrations/gmail/sync", { method: "POST" })),
@@ -42,6 +45,19 @@ export function GmailIntegration() {
       await queryClient.invalidateQueries({ queryKey: ["gmail-integration-status"] });
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Gmail watch renewal failed"),
+  });
+  const saveSettings = useMutation({
+    mutationFn: async () => json(await fetch("/api/integrations/gmail/status", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ backfillDays, syncQuery }),
+    })),
+    onSuccess: async () => {
+      setEditingSettings(false);
+      toast.success("Gmail sync settings saved");
+      await queryClient.invalidateQueries({ queryKey: ["gmail-integration-status"] });
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Could not save Gmail settings"),
   });
   const disconnect = useMutation({
     mutationFn: async () => json<{ providerRevoked: boolean; historicalConversationsRemainAvailable: boolean }>(
@@ -62,6 +78,11 @@ export function GmailIntegration() {
   if (statusQuery.isLoading || !statusQuery.data) return <LoadingState label="Loading Gmail integration…" />;
 
   const data = statusQuery.data;
+  const startEditingSettings = () => {
+    setBackfillDays(data.backfillDays ?? 30);
+    setSyncQuery(data.syncQuery ?? "in:inbox newer_than:30d");
+    setEditingSettings(true);
+  };
   const callbackError = params.get("gmail") === "error" ? params.get("code") : null;
 
   return (
@@ -112,6 +133,12 @@ export function GmailIntegration() {
                   <dt className="text-[var(--muted-foreground)]">Sync query</dt><dd className="break-all font-mono text-[10px]">{data.syncQuery}</dd>
                   <dt className="text-[var(--muted-foreground)]">Last history ID</dt><dd className="font-mono text-[10px]">{data.lastHistoryId ?? "—"}</dd><dt className="text-[var(--muted-foreground)]">Stored threads</dt><dd className="font-semibold">{data.storedThreads?.toLocaleString() ?? "—"}</dd><dt className="text-[var(--muted-foreground)]">Stored messages</dt><dd className="font-semibold">{data.storedMessages?.toLocaleString() ?? "—"}</dd>
                 </dl>
+                {!editingSettings ? <button onClick={startEditingSettings} className="mt-3 text-xs font-medium text-[var(--accent)] hover:underline">Edit sync scope</button> : <div className="mt-3 space-y-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                  <label className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Backfill window<select aria-label="Backfill window" value={backfillDays} onChange={(event) => { const days = Number(event.target.value); setBackfillDays(days); setSyncQuery(`in:inbox newer_than:${days}d`); }} className="mt-1 h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 text-xs normal-case tracking-normal text-[var(--foreground)]"><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option></select></label>
+                  <label className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Gmail query<input aria-label="Gmail sync query" value={syncQuery} onChange={(event) => setSyncQuery(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 font-mono text-[10px] normal-case tracking-normal text-[var(--foreground)]" /></label>
+                  <div className="text-[10px] leading-4 text-[var(--muted-foreground)]">Custom queries are allowed. Counts are reported after fetch; the UI does not invent a cheap exact preview.</div>
+                  <div className="flex gap-2"><Button size="sm" onClick={() => saveSettings.mutate()} disabled={!syncQuery.trim() || saveSettings.isPending}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditingSettings(false)} disabled={saveSettings.isPending}>Cancel</Button></div>
+                </div>}
               </section>
               <section className="p-4">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">Permissions</div>
