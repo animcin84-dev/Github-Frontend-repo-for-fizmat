@@ -21,11 +21,20 @@ function subscribe(onStoreChange: () => void) {
     onStoreChange();
   };
 
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  const onSystemThemeChange = () => {
+    if (localStorage.getItem(THEME_KEY)) return;
+    document.documentElement.dataset.theme = media.matches ? "dark" : "light";
+    onStoreChange();
+  };
+
   window.addEventListener(THEME_EVENT, onThemeChange);
   window.addEventListener("storage", onStorage);
+  media.addEventListener("change", onSystemThemeChange);
   return () => {
     window.removeEventListener(THEME_EVENT, onThemeChange);
     window.removeEventListener("storage", onStorage);
+    media.removeEventListener("change", onSystemThemeChange);
   };
 }
 

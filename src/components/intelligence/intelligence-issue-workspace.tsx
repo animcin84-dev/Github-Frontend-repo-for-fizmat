@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/ui/surface";
 import type { EmergingIssue, Priority } from "@/lib/domain";
-import { resolveDetail } from "@/lib/mocks/data";
+import { knowledgeSources, resolveDetail } from "@/lib/mocks/data";
 
 const severityTone: Record<Priority, "neutral" | "info" | "warning" | "danger"> = { low: "neutral", medium: "info", high: "warning", critical: "danger" };
 
@@ -32,6 +32,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 export function IntelligenceIssueWorkspace({ issue }: { issue: EmergingIssue }) {
   const [mockState, setMockState] = useState<string>(issue.status);
   const representatives = issue.representativeConversationIds.map(resolveDetail);
+  const relatedSources = issue.relatedKnowledgeIds.map((id) => knowledgeSources.find((source) => source.id === id)).filter((source): source is NonNullable<typeof source> => Boolean(source));
   const marker = issue.timeline.find((point) => point.marker);
   const chartData = issue.timeline.map((point) => ({ ...point, baselineRange: [point.baselineLow, point.baselineHigh] }));
 
@@ -139,7 +140,7 @@ export function IntelligenceIssueWorkspace({ issue }: { issue: EmergingIssue }) 
           <Surface className="p-4">
             <div className="flex items-center gap-2"><DatabaseZap className="size-4 text-[var(--info)]" /><h2 className="text-sm font-semibold">Related knowledge</h2></div>
             <p className="mt-1 text-xs text-[var(--muted-foreground)]">Sources may explain answer quality or policy ambiguity; they do not prove the product issue itself.</p>
-            <div className="mt-3 space-y-2">{issue.relatedKnowledgeIds.map((sourceId) => <Link key={sourceId} href={`/knowledge?tab=sources&source=${sourceId}`} className="flex items-center justify-between rounded-md border border-[var(--border)] px-3 py-2 text-xs hover:bg-[var(--surface-2)]"><span className="font-medium">{sourceId.replaceAll("-", " ")}</span><ArrowRight className="size-3.5 text-[var(--muted-foreground)]" /></Link>)}</div>
+            <div className="mt-3 space-y-2">{relatedSources.map((source) => <Link key={source.id} href={`/knowledge?tab=sources&source=${source.id}`} className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] px-3 py-2 text-xs hover:bg-[var(--surface-2)]"><span className="min-w-0"><span className="block truncate font-medium">{source.title}</span><span className="mt-0.5 block text-[10px] text-[var(--muted-foreground)]">{source.authority} · {source.status.replace("_", " ")}</span></span><ArrowRight className="size-3.5 shrink-0 text-[var(--muted-foreground)]" /></Link>)}</div>
           </Surface>
 
           <Surface className="p-4">

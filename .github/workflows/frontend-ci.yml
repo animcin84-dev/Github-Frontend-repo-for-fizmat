@@ -1,8 +1,10 @@
-name: phase-c-gate
+name: frontend-ci
 
 on:
   push:
-    branches: ["feat/phase-c-intelligence-knowledge"]
+    branches: [main, "feat/phase-c-intelligence-knowledge"]
+  pull_request:
+    branches: [main]
 
 jobs:
   verify:

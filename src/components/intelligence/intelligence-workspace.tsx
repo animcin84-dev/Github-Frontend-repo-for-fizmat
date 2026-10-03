@@ -159,7 +159,7 @@ export function IntelligenceWorkspace() {
       (!severity || item.severity === severity) &&
       (!area || item.relatedProductArea === area) &&
       item.conversationCount >= min &&
-      NOW - Date.parse(item.firstSeenAt) <= rangeMs
+      NOW - Date.parse(item.lastActivityAt) <= rangeMs
     );
     return [...result].sort((a, b) => {
       if (sort === "severity") return severityRank[b.severity] - severityRank[a.severity] || b.growthPercent - a.growthPercent;
