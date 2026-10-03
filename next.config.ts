@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   logging: {
-    // OAuth callback query strings contain short-lived authorization codes.
-    incomingRequests: { ignore: [/^\/api\/integrations\/gmail\/callback(?:\?|$)/] },
+    // OAuth codes and webhook verification tokens must stay out of request logs.
+    incomingRequests: { ignore: [/^\/api\/integrations\/gmail\/callback(?:\?|$)/, /^\/api\/integrations\/whatsapp\/webhook(?:\?|$)/] },
   },
 };
 
