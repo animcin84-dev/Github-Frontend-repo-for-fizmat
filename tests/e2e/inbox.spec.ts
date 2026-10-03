@@ -16,6 +16,7 @@ test.describe("inbox critical flows", () => {
     await expect(page).toHaveURL(/conv-00001\?priority=high/);
 
     await page.goto("/inbox/conv-00001?priority=high");
+    await expect(page.getByText("110 of 5,200")).toBeVisible();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await expect(page.getByPlaceholder("Search conversations")).not.toBeFocused();
     await page.keyboard.press("j");
