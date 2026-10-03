@@ -28,6 +28,18 @@ import type { KnowledgeConflict, KnowledgeCoverage, KnowledgeGap, KnowledgeSourc
 import { getKnowledgeWorkspace } from "@/lib/mocks/service";
 import { cn } from "@/lib/utils";
 
+const automationPolicyForSource: Record<string, string> = {
+  "ks-refund-policy": "policy-refund",
+  "ks-refund-help-ru": "policy-refund",
+  "ks-subscription-legacy": "policy-subscription-cancel",
+  "ks-subscription-policy-2026": "policy-subscription-cancel",
+  "ks-identity-policy": "policy-account-email",
+  "ks-security-runbook": "policy-account-email",
+  "ks-delivery-guide": "policy-order-lookup",
+  "ks-carrier-status": "policy-order-lookup",
+  "ks-payment-auth": "policy-payment-lookup",
+};
+
 const NOW = Date.parse("2026-10-03T09:15:00Z");
 
 const statusTone: Record<KnowledgeSource["status"], "neutral" | "info" | "warning" | "danger" | "success"> = {
@@ -128,6 +140,7 @@ function SourceInspector({
           <Button size="sm" onClick={() => action("Conflict review opened")}><GitCompareArrows className="size-3.5" />Review conflict</Button>
           <Button size="sm" onClick={() => action("Newer source preference staged")}><CheckCircle2 className="size-3.5" />Prefer newer source</Button>
           <Button size="sm" onClick={() => action("Deprecation staged for review")}><AlertTriangle className="size-3.5" />Mark deprecated</Button>
+          {automationPolicyForSource[source.id] ? <Link href={`/automation?tab=policies&policy=${automationPolicyForSource[source.id]}`} className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 text-xs font-medium hover:bg-[var(--surface-2)]">Affected automation policy <ArrowRight className="size-3.5" /></Link> : null}
         </div>
       </div>
     </aside>
