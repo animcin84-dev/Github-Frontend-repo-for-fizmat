@@ -37,6 +37,11 @@ export async function connectGmailFromCode(code: string) {
   }
 
   const scopes = token.scope?.split(" ").filter(Boolean) ?? [...GMAIL_SCOPES];
+  const configuredBackfill = Number(process.env.GMAIL_BACKFILL_DAYS ?? 30);
+  const backfillDays = Number.isFinite(configuredBackfill)
+    ? Math.min(365, Math.max(1, Math.trunc(configuredBackfill)))
+    : 30;
+  const syncQuery = process.env.GMAIL_SYNC_QUERY?.trim() || `in:inbox newer_than:${backfillDays}d`;
   const account = await upsertGmailIntegration({
     providerAccountId: profile.emailAddress.toLowerCase(),
     emailAddress: profile.emailAddress,
@@ -44,8 +49,8 @@ export async function connectGmailFromCode(code: string) {
     grantedScopes: scopes,
     // Do not advance the sync cursor until the initial backfill has completed successfully.
     lastHistoryId: null,
-    syncQuery: process.env.GMAIL_SYNC_QUERY ?? "in:inbox newer_than:30d",
-    backfillDays: Number(process.env.GMAIL_BACKFILL_DAYS ?? 30),
+    syncQuery,
+    backfillDays,
   });
 
   const sync = await runFullGmailSync({ integrationId: account.id, kind: "initial" });
