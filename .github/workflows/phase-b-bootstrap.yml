@@ -25,6 +25,7 @@ jobs:
           tar -xzf /tmp/phase-b.tgz -C .
           python - <<'PY'
           from pathlib import Path
+
           p = Path("src/components/inbox/inbox-workspace.tsx")
           lines = p.read_text().splitlines()
           out = []
@@ -76,6 +77,25 @@ jobs:
               i += 1
           assert inserted and replaced_workspace
           p.write_text("\n".join(out) + "\n")
+
+          Path("src/app/(product)/inbox/page.tsx").write_text(
+              'import { Suspense } from "react";\n'
+              'import { InboxWorkspace } from "@/components/inbox/inbox-workspace";\n'
+              'import { LoadingState } from "@/components/ui/page-state";\n\n'
+              'export default function InboxPage() {\n'
+              '  return <Suspense fallback={<LoadingState label="Loading inbox…" />}><InboxWorkspace /></Suspense>;\n'
+              '}\n'
+          )
+
+          Path("src/app/(product)/inbox/[conversationId]/page.tsx").write_text(
+              'import { Suspense } from "react";\n'
+              'import { InboxWorkspace } from "@/components/inbox/inbox-workspace";\n'
+              'import { LoadingState } from "@/components/ui/page-state";\n\n'
+              'export default async function ConversationPage({ params }: { params: Promise<{ conversationId: string }> }) {\n'
+              '  const { conversationId } = await params;\n'
+              '  return <Suspense fallback={<LoadingState label="Loading conversation…" />}><InboxWorkspace initialConversationId={conversationId} /></Suspense>;\n'
+              '}\n'
+          )
           PY
           rm -rf .bootstrap
           rm -f .github/workflows/phase-b-bootstrap.yml
