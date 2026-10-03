@@ -41,6 +41,21 @@ function flattenParts(part: GmailMessagePart | undefined): GmailMessagePart[] {
   return [part, ...(part.parts?.flatMap(flattenParts) ?? [])];
 }
 
+async function htmlToPlainText(html: string) {
+  const synthetic = [
+    "MIME-Version: 1.0",
+    'Content-Type: text/html; charset="utf-8"',
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    html,
+  ].join("\r\n");
+  const parsed = await simpleParser(Buffer.from(synthetic), {
+    skipHtmlToText: false,
+    skipTextToHtml: true,
+  });
+  return parsed.text ?? "";
+}
+
 async function normalizeFullMessage(message: GmailMessageResponse, mailboxEmail: string): Promise<NormalizedMessage> {
   const payload = message.payload;
   if (!payload) throw new SupportError("parse_failed", `Gmail message ${message.id} has no payload`, { status: 422 });
@@ -75,8 +90,8 @@ async function normalizeFullMessage(message: GmailMessageResponse, mailboxEmail:
   const sender = addresses(parsedHeaders.from)[0];
   const recipients = addresses(parsedHeaders.to);
   const cc = addresses(parsedHeaders.cc);
-  const text = plainParts.join("\n\n");
   const html = htmlParts.length ? htmlParts.join("\n") : null;
+  const text = plainParts.length ? plainParts.join("\n\n") : html ? await htmlToPlainText(html) : "";
   const occurredAt = parsedHeaders.date ?? (message.internalDate ? new Date(Number(message.internalDate)) : new Date());
   const referencesValue = parsedHeaders.references;
   const references = Array.isArray(referencesValue)
