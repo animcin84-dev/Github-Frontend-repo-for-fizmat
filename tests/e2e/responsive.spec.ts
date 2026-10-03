@@ -8,7 +8,7 @@ const viewports = [
   { name: "390x844", width: 390, height: 844 },
 ];
 
-const routes = ["/overview", "/inbox", "/intelligence", "/knowledge", "/ai-quality?tab=failures"];
+const routes = ["/overview", "/inbox", "/intelligence", "/knowledge", "/ai-quality?tab=failures", "/automation", "/automation?tab=policies", "/automation?tab=procedures", "/automation?tab=rollouts", "/automation?tab=audit"];
 
 for (const viewport of viewports) {
   for (const route of routes) {
