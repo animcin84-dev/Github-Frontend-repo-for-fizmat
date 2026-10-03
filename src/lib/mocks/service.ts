@@ -58,6 +58,7 @@ export async function getWorkspaceSnapshot() {
     knowledgeSources,
     knowledgeGaps,
     volumeSeries,
+    automation: automationDecisionsSummary,
   };
 }
 
