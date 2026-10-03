@@ -1,0 +1,26 @@
+name: phase-c-baseline
+
+on:
+  push:
+    branches: ["feat/phase-c-intelligence-knowledge"]
+    paths:
+      - ".github/workflows/phase-c-baseline.yml"
+
+jobs:
+  verify-current-main-head:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 56bdec93f40db89f1fd56ab105fde7939af7d31e
+      - name: Show verified commit
+        run: git rev-parse HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
