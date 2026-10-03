@@ -14,11 +14,11 @@
   --muted-foreground: #66707c;
   --accent: #315ee7;
   --accent-foreground: #ffffff;
-  --success: #16835f;
-  --warning: #ad6816;
-  --danger: #c9363e;
-  --info: #2f66c9;
-  --ai: #6b4fc2;
+  --success: #0f6b4e;
+  --warning: #78440a;
+  --danger: #a62a32;
+  --info: #2455aa;
+  --ai: #5840a3;
   --focus-ring: #4f7cff;
 }
 
