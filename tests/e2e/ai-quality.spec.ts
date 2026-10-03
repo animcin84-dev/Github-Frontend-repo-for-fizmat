@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test.describe("AI Quality overview", () => {
   test("outcome composition, trend controls and root-cause drill-down work", async ({ page }) => {
     await page.goto("/ai-quality");
-    await expect(page.getByRole("heading", { name: "AI Quality" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "AI Quality", exact: true })).toBeVisible();
     await expect(page.getByText("Outcome composition")).toBeVisible();
     await expect(page.getByText("Knowledge quality × AI quality")).toBeVisible();
     await expect(page.getByText("Intent / topic quality")).toBeVisible();
