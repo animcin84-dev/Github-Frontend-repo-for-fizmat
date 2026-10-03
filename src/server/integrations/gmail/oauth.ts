@@ -76,7 +76,6 @@ export function buildOAuthAuthorizationUrl(state: string) {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("access_type", "offline");
   url.searchParams.set("prompt", "consent");
-  url.searchParams.set("include_granted_scopes", "true");
   url.searchParams.set("scope", GMAIL_SCOPES.join(" "));
   url.searchParams.set("state", state);
   return url.toString();
