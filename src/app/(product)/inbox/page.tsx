@@ -1,2 +1,7 @@
-import { PlannedSurface } from "@/components/ui/planned-surface";
-export default function InboxPage() { return <PlannedSurface title="Inbox" subtitle="Primary operator workspace" focus={["Virtualized conversation list", "Resizable workspace", "Evidence-first AI draft", "Policy gate"]} />; }
+import { Suspense } from "react";
+import { InboxWorkspace } from "@/components/inbox/inbox-workspace";
+import { LoadingState } from "@/components/ui/page-state";
+
+export default function InboxPage() {
+  return <Suspense fallback={<LoadingState label="Loading inbox…" />}><InboxWorkspace /></Suspense>;
+}
