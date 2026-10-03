@@ -100,10 +100,49 @@ Official protocol references:
 [Meta signature example](https://github.com/fbsamples/whatsapp-api-examples/tree/main/signature-validation-with-webhooks-payloads),
 [Meta payload reference](https://www.postman.com/meta/whatsapp-business-platform/folder/tduohwq/webhook-payload-reference).
 
+## P1 transport closeout
+
+The user reported these manual results after accepted foundation commit
+`cf49f19315231b404c677506cf18c107212cfd4a`. They are external transport evidence,
+not a real phone acceptance test performed by the implementation agent.
+
+| Check | Reported result |
+| --- | --- |
+| Public HTTPS GET verification | PASS: HTTP 200 and exact challenge |
+| WABA subscribed apps | PASS: Support Intelligence present |
+| `messages` webhook field subscription | PASS |
+| Public signed POST | PASS: tunnel → Next.js → exact-byte HMAC → parser → service |
+| Actual phone inbound and outbound | NOT VERIFIED |
+| Sandbox outbound to Kazakhstan +7 recipient | BLOCKED: Meta error `131030`, recipient not in allowed list |
+
+The signed POST returned HTTP 200 with
+`{"inserted":0,"duplicates":0,"ignored":0}`. This proves the signed transport
+boundary was reached; it does not prove a customer message persisted or a real
+reply reached a phone. The user also reported Meta test UI recipient-normalization
+problems and limitations of the unpublished/test app. Do not bypass Meta's test
+restrictions or migrate the user's personal WhatsApp number.
+
+**WHATSAPP WEBHOOK PIPELINE PASSED** (user-reported manual transport evidence).
+**REAL WHATSAPP PHONE E2E NOT VERIFIED.**
+
+The current reliable development tunnel command is:
+
+```sh
+docker run --rm --network host \
+  cloudflare/cloudflared:latest \
+  tunnel --edge-ip-version 4 \
+  --protocol http2 \
+  --url http://127.0.0.1:3000
+```
+
+Cloudflare Quick Tunnel is development-only. Its temporary hostname and all
+credentials must stay out of Git. The user's local Meta configuration includes
+`WHATSAPP_API_VERSION=v26.0`; no outbound Graph call is implemented by foundations.
+
 ## Remaining real acceptance
 
-1. Supply the Meta settings and public HTTPS callback; complete Meta verification
-   and message subscription with the intended business phone number.
+1. Resolve the official Meta sandbox recipient/setup restrictions without
+   unofficial clients or moving the user's personal number.
 2. Send an actual phone text; verify provider IDs/body/direction, PostgreSQL rows,
    existing Inbox display and dedupe after redelivery.
 3. Implement the official manual WhatsApp send adapter with explicit human review,
@@ -112,5 +151,4 @@ Official protocol references:
    phone, provider IDs, no duplicate sends and persistence after restart.
 5. Rerun Gmail regressions and all quality gates before merge consideration.
 
-**REAL WHATSAPP TEST NOT RUN.** Credential/public-webhook setup and the real
-manual reply path remain pending. Stop here until the user supplies the setup.
+**REAL WHATSAPP TEST NOT VERIFIED.** Transport closeout does not replace phone E2E.
