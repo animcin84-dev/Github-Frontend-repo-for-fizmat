@@ -132,6 +132,7 @@ export function ApprovalPreview({
             ].map(([label, value]) => <div key={label} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-2.5 text-xs"><div className="text-[10px] uppercase tracking-[0.08em] text-[var(--muted-foreground)]">{label}</div><div className="mt-1 font-semibold">{value}</div></div>)}
           </div>
           <div className="rounded-md border border-[var(--border)] p-3 text-xs"><div className="font-semibold">Why approval is needed</div><p className="mt-1 leading-5 text-[var(--muted-foreground)]">{request.reason}</p></div>
+          <div className="rounded-md border border-[var(--border)] p-3 text-xs"><div className="font-semibold">Evidence</div><div className="mt-2 flex flex-wrap gap-1.5">{request.evidenceIds.map((id) => <Link key={id} href={`/knowledge?tab=sources&source=${id}`}><Badge tone="info">{id}</Badge></Link>)}</div></div>
           <div className="rounded-md border border-[var(--border)] p-3 text-xs"><div className="font-semibold">Expected external change</div><p className="mt-1 leading-5 text-[var(--muted-foreground)]">{request.expectedExternalChange}</p></div>
           {secondStep ? (
             <div className="rounded-md border border-[color-mix(in_srgb,var(--warning)_35%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_5%,var(--surface-1))] p-3">
