@@ -74,6 +74,11 @@ function PolicyInspector({ policy, data, close }: { policy: AutomationPolicy; da
 
         {policy.amountLimit !== undefined ? <section className="rounded-md border border-[var(--border)] p-3 text-xs"><div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">Amount boundary</div><div className="mt-2 font-semibold">Automation ceiling ≤ ${policy.amountLimit.toFixed(2)}</div>{current.humanApprovalThreshold !== undefined ? <div className="mt-1 text-[var(--muted-foreground)]">Human approval threshold: ${current.humanApprovalThreshold.toFixed(2)}</div> : null}</section> : null}
 
+        <section className="grid gap-2 sm:grid-cols-2">
+          <div className="rounded-md border border-[var(--border)] p-3"><div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">Allowed channels</div><div className="mt-2 flex flex-wrap gap-1">{policy.allowedChannels.map((channel) => <Badge key={channel}>{channel}</Badge>)}</div></div>
+          <div className="rounded-md border border-[var(--border)] p-3"><div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">Allowed regions</div><div className="mt-2 flex flex-wrap gap-1">{policy.allowedRegions.map((region) => <Badge key={region}>{region}</Badge>)}</div></div>
+        </section>
+
         <section>
           <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">Block if</h3>
           <div className="mt-2 flex flex-wrap gap-1.5">{policy.blockedConditions.map((condition) => <Badge key={condition} tone="danger">{condition}</Badge>)}</div>
