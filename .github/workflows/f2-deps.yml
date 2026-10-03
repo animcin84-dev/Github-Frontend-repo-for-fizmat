@@ -1,0 +1,36 @@
+name: f2-dependency-bootstrap
+
+on:
+  push:
+    branches: ["feat/phase-f2-real-gmail-data-plane"]
+    paths:
+      - ".github/workflows/f2-deps.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/phase-f2-real-gmail-data-plane
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Add Phase F2 runtime dependencies
+        run: npm install drizzle-orm postgres mailparser
+      - name: Add Phase F2 development dependencies
+        run: npm install -D drizzle-kit vitest @types/mailparser
+      - name: Commit dependency lockfile
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore: add Phase F2 server dependencies"
+          git push origin HEAD:feat/phase-f2-real-gmail-data-plane
