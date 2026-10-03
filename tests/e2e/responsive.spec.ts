@@ -18,7 +18,7 @@ for (const viewport of viewports) {
       await page.waitForLoadState("networkidle");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, `document overflow on ${route} at ${viewport.name}`).toBeLessThanOrEqual(1);
-      const slug = route.replaceAll("/", "-").replace(/^-/, "") || "root";
+      const slug = route.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "") || "root";
       await page.screenshot({ path: `test-results/responsive/${viewport.name}-${slug}.png`, fullPage: true });
     });
   }
