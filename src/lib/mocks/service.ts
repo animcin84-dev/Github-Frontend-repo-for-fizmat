@@ -1,4 +1,24 @@
 import {
+  actionCatalog,
+  actionPreviewScenarios,
+  approvalRequests,
+  automationAuditEvents,
+  automationDecisionsSummary,
+  automationPolicies,
+  automationProcedures,
+  connectorHealth,
+  duplicateProtectionExecution,
+  featuredAuditEvent,
+  incidentGates,
+  knowledgeDowngrade,
+  phaseEReadiness,
+  policyReplay,
+  procedureSimulations,
+  qualityRegressionGate,
+  readinessExplanations,
+  rolloutConfigs,
+} from "@/lib/mocks/automation-data";
+import {
   aiFailures,
   aiOutcomes,
   automationReadiness,
@@ -97,5 +117,32 @@ export async function getAIQualityWorkspace() {
     shadowSimulations,
     recommendations: qualityRecommendations,
     knowledgeSources,
+  };
+}
+
+
+export async function getAutomationWorkspace() {
+  await wait(95);
+  return {
+    summary: automationDecisionsSummary,
+    readiness: phaseEReadiness,
+    readinessExplanations,
+    policies: automationPolicies,
+    procedures: automationProcedures,
+    actions: actionCatalog,
+    approvals: approvalRequests,
+    rollouts: rolloutConfigs,
+    auditEvents: [featuredAuditEvent, ...automationAuditEvents],
+    connectors: connectorHealth,
+    incidentGates,
+    policyReplay,
+    procedureSimulations,
+    actionPreviews: actionPreviewScenarios,
+    duplicateProtectionExecution,
+    knowledgeDowngrade,
+    qualityRegressionGate,
+    evaluationRun,
+    knowledgeSources,
+    emergingIssues,
   };
 }
