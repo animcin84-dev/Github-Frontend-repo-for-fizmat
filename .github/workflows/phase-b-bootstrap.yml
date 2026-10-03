@@ -23,72 +23,64 @@ jobs:
           base64 -d /tmp/phase-b.tgz.b64 > /tmp/phase-b.tgz
           tar -tzf /tmp/phase-b.tgz >/dev/null
           tar -xzf /tmp/phase-b.tgz -C .
-          cat > /tmp/inbox-lint.patch <<'PATCH'
-          --- a/src/components/inbox/inbox-workspace.tsx
-          +++ b/src/components/inbox/inbox-workspace.tsx
-          @@ -70,6 +70,8 @@
-           
-           function ConversationList({ items, selectedId, onSelect }: { items: ConversationListItem[]; selectedId: string; onSelect: (id: string) => void }) {
-             const parentRef = useRef<HTMLDivElement>(null);
-          +  // TanStack Virtual intentionally returns imperative helpers; React Compiler skips memoizing this hook.
-          +  // eslint-disable-next-line react-hooks/incompatible-library
-             const virtualizer = useVirtualizer({ count: items.length, getScrollElement: () => parentRef.current, estimateSize: () => 76, overscan: 12 });
-             return <div ref={parentRef} className="h-full overflow-auto bg-[var(--surface-1)] scrollbar-gutter-stable"><div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>{virtualizer.getVirtualItems().map((row) => {
-               const item = items[row.index];
-          @@ -107,6 +109,21 @@
-             </div></div></div>;
-           }
-           
-          +function ConversationWorkspace({ detail, showInspector }: { detail: ConversationDetail; showInspector: boolean }) {
-          +  const [draftText, setDraftText] = useState(detail.aiDraft?.text ?? "");
-          +  const [actionState, setActionState] = useState("");
-          +
-          +  return <Group orientation="horizontal" className="h-full">
-          +    <Panel id="thread" minSize="420px"><ThreadPanel detail={detail} /></Panel>
-          +    {showInspector ? <>
-          +      <Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" />
-          +      <Panel id="inspector" defaultSize="390px" minSize="340px" maxSize="460px" groupResizeBehavior="preserve-pixel-size">
-          +        <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} />
-          +      </Panel>
-          +    </> : null}
-          +  </Group>;
-          +}
-          +
-           export function InboxWorkspace({ initialConversationId }: { initialConversationId?: string }) {
-             const router = useRouter();
-             const searchParams = useSearchParams();
-          @@ -117,9 +134,6 @@
-             const [ai, setAi] = useQueryState("ai", { defaultValue: "" });
-             const [sla, setSla] = useQueryState("sla", { defaultValue: "" });
-             const [selectedId, setSelectedId] = useState(initialConversationId ?? "conv-00001");
-          -  const [draftText, setDraftText] = useState("");
-          -  const [actionState, setActionState] = useState("");
-          -
-             const listQuery = useQuery({ queryKey: ["conversations"], queryFn: getConversationList });
-             const detailQuery = useQuery({ queryKey: ["conversation", selectedId], queryFn: () => getConversationDetail(selectedId) });
-           
-          @@ -134,10 +148,6 @@
-               return { all: items.length, unread: items.filter((item) => item.unread).length, sla: items.filter((item) => item.slaRisk !== "none").length, critical: items.filter((item) => item.priority === "critical").length };
-             }, [listQuery.data]);
-           
-          -  useEffect(() => {
-          -    if (detailQuery.data?.aiDraft) setDraftText(detailQuery.data.aiDraft.text);
-          -    setActionState("");
-          -  }, [detailQuery.data]);
-          -
-           
-             const select = useCallback((id: string) => {
-               setSelectedId(id);
-          @@ -169,6 +179,6 @@
-               {flags.showQueues ? <><Panel id="queues" defaultSize="196px" minSize="160px" maxSize="240px" groupResizeBehavior="preserve-pixel-size"><QueueRail counts={counts} setPriority={setPriority} setSla={setSla} /></Panel><Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" /></> : null}
-               <Panel id="list" defaultSize="350px" minSize="300px" maxSize="430px" groupResizeBehavior="preserve-pixel-size"><div className="flex h-full min-h-0 flex-col"><div className="flex h-[48px] shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-1)] px-3"><div><div className="text-xs font-semibold">Inbox</div><div className="text-[10px] text-[var(--muted-foreground)]">{filtered.length.toLocaleString()} of {counts.all.toLocaleString()}</div></div><div className="flex items-center gap-1 text-[10px] text-[var(--muted-foreground)]"><kbd className="rounded border px-1">J/K</kbd><span>next</span></div></div><FilterBar q={q} setQ={setQ} priority={priority} setPriority={setPriority} channel={channel} setChannel={setChannel} ai={ai} setAi={setAi} sla={sla} setSla={setSla} />{filtered.length ? <div className="min-h-0 flex-1"><ConversationList items={filtered} selectedId={selectedId} onSelect={select} /></div> : <div className="grid flex-1 place-items-center p-6 text-center"><div><Search className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No conversations match</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Clear one or more URL-backed filters.</div></div></div>}</div></Panel>
-               <Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" />
-          -    <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <Group orientation="horizontal" className="h-full"><Panel id="thread" minSize="420px"><ThreadPanel detail={detail} /></Panel>{flags.showInspector ? <><Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" /><Panel id="inspector" defaultSize="390px" minSize="340px" maxSize="460px" groupResizeBehavior="preserve-pixel-size"><EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} /></Panel></> : null}</Group> : <LoadingState label="Loading conversation detail…" />}</div></Panel>
-          +    <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <ConversationWorkspace key={detail.id} detail={detail} showInspector={flags.showInspector} /> : <LoadingState label="Loading conversation detail…" />}</div></Panel>
-             </Group></div>;
-           }
-          PATCH
-          patch -p1 < /tmp/inbox-lint.patch
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("src/components/inbox/inbox-workspace.tsx")
+          s = p.read_text()
+
+          virtualizer = '  const virtualizer = useVirtualizer({ count: items.length, getScrollElement: () => parentRef.current, estimateSize: () => 76, overscan: 12 });'
+          assert s.count(virtualizer) == 1
+          s = s.replace(
+              virtualizer,
+              '  // TanStack Virtual intentionally returns imperative helpers; React Compiler skips memoizing this hook.\n'
+              '  // eslint-disable-next-line react-hooks/incompatible-library\n'
+              + virtualizer,
+              1,
+          )
+
+          workspace_component = '''function ConversationWorkspace({ detail, showInspector }: { detail: ConversationDetail; showInspector: boolean }) {
+            const [draftText, setDraftText] = useState(detail.aiDraft?.text ?? "");
+            const [actionState, setActionState] = useState("");
+
+            return <Group orientation="horizontal" className="h-full">
+              <Panel id="thread" minSize="420px"><ThreadPanel detail={detail} /></Panel>
+              {showInspector ? <>
+                <Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" />
+                <Panel id="inspector" defaultSize="390px" minSize="340px" maxSize="460px" groupResizeBehavior="preserve-pixel-size">
+                  <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} />
+                </Panel>
+              </> : null}
+            </Group>;
+          }
+
+          '''
+          anchor = 'export function InboxWorkspace({ initialConversationId }: { initialConversationId?: string }) {'
+          assert s.count(anchor) == 1
+          s = s.replace(anchor, workspace_component + anchor, 1)
+
+          draft_state = '''  const [draftText, setDraftText] = useState("");
+            const [actionState, setActionState] = useState("");
+
+          '''
+          assert s.count(draft_state) == 1
+          s = s.replace(draft_state, "", 1)
+
+          reset_effect = '''  useEffect(() => {
+            if (detailQuery.data?.aiDraft) setDraftText(detailQuery.data.aiDraft.text);
+            setActionState("");
+          }, [detailQuery.data]);
+
+          '''
+          assert s.count(reset_effect) == 1
+          s = s.replace(reset_effect, "", 1)
+
+          old_workspace = '    <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <Group orientation="horizontal" className="h-full"><Panel id="thread" minSize="420px"><ThreadPanel detail={detail} /></Panel>{flags.showInspector ? <><Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" /><Panel id="inspector" defaultSize="390px" minSize="340px" maxSize="460px" groupResizeBehavior="preserve-pixel-size"><EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} /></Panel></> : null}</Group> : <LoadingState label="Loading conversation detail…" />}</div></Panel>'
+          new_workspace = '    <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <ConversationWorkspace key={detail.id} detail={detail} showInspector={flags.showInspector} /> : <LoadingState label="Loading conversation detail…" />}</div></Panel>'
+          assert s.count(old_workspace) == 1
+          s = s.replace(old_workspace, new_workspace, 1)
+
+          p.write_text(s)
+          PY
           rm -rf .bootstrap
           rm -f .github/workflows/phase-b-bootstrap.yml
       - uses: actions/setup-node@v4
