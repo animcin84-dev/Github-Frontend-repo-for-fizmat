@@ -58,13 +58,28 @@ export interface GmailThreadResponse {
   messages?: Array<{ id: string; threadId: string; labelIds?: string[] }>;
 }
 
-export interface GmailRawMessage {
+export interface GmailMessagePart {
+  partId?: string;
+  mimeType?: string;
+  filename?: string;
+  headers?: Array<{ name: string; value: string }>;
+  body?: {
+    attachmentId?: string;
+    data?: string;
+    size?: number;
+  };
+  parts?: GmailMessagePart[];
+}
+
+export interface GmailMessageResponse {
   id: string;
   threadId: string;
   labelIds?: string[];
   historyId?: string;
   internalDate?: string;
-  raw: string;
+  payload?: GmailMessagePart;
+  /** Fixture/backward-compatible raw form. Production requests format=full to avoid explicit attachment downloads. */
+  raw?: string;
 }
 
 export interface GmailHistoryResponse {
@@ -91,7 +106,7 @@ export interface GmailClient {
   getProfile(): Promise<GmailProfile>;
   listThreads(input: { q: string; pageToken?: string; maxResults?: number }): Promise<GmailThreadListResponse>;
   getThread(threadId: string): Promise<GmailThreadResponse>;
-  getRawMessage(messageId: string): Promise<GmailRawMessage>;
+  getMessage(messageId: string): Promise<GmailMessageResponse>;
   listHistory(input: { startHistoryId: string; pageToken?: string }): Promise<GmailHistoryResponse>;
   searchMessages(query: string): Promise<Array<{ id: string; threadId: string }>>;
   sendMessage(input: { raw: string; threadId: string }): Promise<GmailSendResponse>;

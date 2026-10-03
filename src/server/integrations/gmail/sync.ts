@@ -32,7 +32,7 @@ async function persistRawMessage(
   messageId: string,
   counts: SyncCounts,
 ) {
-  const raw = await client.getRawMessage(messageId);
+  const raw = await client.getMessage(messageId);
   counts.messagesFound += 1;
   const normalized = await normalizeGmailMessage(raw, account.emailAddress);
   const persisted = await persistNormalizedMessage(account, normalized);

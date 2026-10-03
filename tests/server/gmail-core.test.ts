@@ -65,6 +65,36 @@ describe("Gmail normalization and MIME reply construction", () => {
     expect(extractPresentationText("A sufficiently long new reply here.\nOn Fri, Person wrote:\n> old")).toBe("A sufficiently long new reply here.");
   });
 
+  test("normalizes Gmail full payload without fetching attachment bodies", async () => {
+    const full = await normalizeGmailMessage({
+      id: "full-1",
+      threadId: "thread-full",
+      labelIds: ["INBOX", "UNREAD"],
+      internalDate: String(Date.parse("2026-10-03T12:00:00Z")),
+      payload: {
+        mimeType: "multipart/mixed",
+        headers: [
+          { name: "From", value: "Customer <customer@example.test>" },
+          { name: "To", value: "support@example.test" },
+          { name: "Subject", value: "Attachment metadata only" },
+          { name: "Date", value: "Sat, 03 Oct 2026 12:00:00 +0000" },
+          { name: "Message-ID", value: "<full-1@example.test>" },
+        ],
+        parts: [
+          { mimeType: "text/plain", body: { data: Buffer.from("Hello from Gmail full payload").toString("base64url"), size: 29 } },
+          { mimeType: "application/pdf", filename: "invoice.pdf", body: { attachmentId: "att-1", size: 128_000 } },
+        ],
+      },
+    }, "support@example.test");
+    expect(full.text).toBe("Hello from Gmail full payload");
+    expect(full.attachments).toEqual([{
+      providerAttachmentId: "att-1",
+      filename: "invoice.pdf",
+      mimeType: "application/pdf",
+      size: 128_000,
+    }]);
+  });
+
   test("builds RFC MIME reply with same-thread headers", async () => {
     const result = await buildReplyMime({
       mailboxEmail: "support@example.test",

@@ -163,7 +163,7 @@ export async function sendManualGmailReply(input: {
     if (operation.attempt > 0) {
       const existing = await client.searchMessages(`rfc822msgid:${mime.messageIdHeader}`);
       if (existing[0]) {
-        const rawExisting = await client.getRawMessage(existing[0].id);
+        const rawExisting = await client.getMessage(existing[0].id);
         const normalizedExisting = await normalizeGmailMessage(rawExisting, context.integration.emailAddress);
         await persistNormalizedMessage(context.integration, normalizedExisting);
         await markOutboundSent(operation.id, { providerMessageId: existing[0].id, providerThreadId: existing[0].threadId });
@@ -183,7 +183,7 @@ export async function sendManualGmailReply(input: {
     });
 
     try {
-      const raw = await client.getRawMessage(sent.id);
+      const raw = await client.getMessage(sent.id);
       const normalized = await normalizeGmailMessage(raw, context.integration.emailAddress);
       await persistNormalizedMessage(context.integration, normalized);
     } catch {

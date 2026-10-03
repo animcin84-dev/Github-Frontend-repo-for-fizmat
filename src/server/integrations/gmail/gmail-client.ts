@@ -5,7 +5,7 @@ import type {
   GmailClient,
   GmailHistoryResponse,
   GmailProfile,
-  GmailRawMessage,
+  GmailMessageResponse,
   GmailSendResponse,
   GmailThreadListResponse,
   GmailThreadResponse,
@@ -92,8 +92,8 @@ export class GmailRestClient implements GmailClient {
     return this.request<GmailThreadResponse>(`/threads/${encodeURIComponent(threadId)}?format=minimal`, undefined, true);
   }
 
-  getRawMessage(messageId: string) {
-    return this.request<GmailRawMessage>(`/messages/${encodeURIComponent(messageId)}?format=raw`, undefined, true);
+  getMessage(messageId: string) {
+    return this.request<GmailMessageResponse>(`/messages/${encodeURIComponent(messageId)}?format=full`, undefined, true);
   }
 
   listHistory(input: { startHistoryId: string; pageToken?: string }) {

@@ -2,7 +2,7 @@ import type {
   GmailClient,
   GmailHistoryResponse,
   GmailProfile,
-  GmailRawMessage,
+  GmailMessageResponse,
   GmailSendResponse,
   GmailThreadListResponse,
   GmailThreadResponse,
@@ -21,7 +21,7 @@ export function rawFixture(input: {
   references?: string[];
   unread?: boolean;
   date?: string;
-}): GmailRawMessage {
+}): GmailMessageResponse {
   const headers = [
     `From: ${input.from}`,
     `To: ${input.to}`,
@@ -50,7 +50,7 @@ export class FixtureGmailClient implements GmailClient {
   profile: GmailProfile = { emailAddress: "support@example.test", historyId: "300" };
   threadPages: GmailThreadListResponse[] = [];
   threads = new Map<string, GmailThreadResponse>();
-  raws = new Map<string, GmailRawMessage>();
+  raws = new Map<string, GmailMessageResponse>();
   historyPages: GmailHistoryResponse[] = [];
   historyError?: Error;
   searchResults: Array<{ id: string; threadId: string }> = [];
@@ -62,7 +62,7 @@ export class FixtureGmailClient implements GmailClient {
   async getProfile() { return this.profile; }
   async listThreads() { return this.threadPages[this.listThreadCalls++] ?? { threads: [] }; }
   async getThread(threadId: string) { return this.threads.get(threadId) ?? { id: threadId, messages: [] }; }
-  async getRawMessage(messageId: string) {
+  async getMessage(messageId: string) {
     const value = this.raws.get(messageId);
     if (!value) throw new Error(`Missing raw fixture ${messageId}`);
     return value;
