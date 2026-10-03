@@ -15,11 +15,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: npm audit report
+      - name: Test non-breaking braces patch override
         shell: bash
         run: |
+          npm pkg set overrides.braces=3.0.4
+          npm install --package-lock-only --ignore-scripts
+          echo "=== PACKAGE DIFF ==="
+          git diff -- package.json package-lock.json
+          echo "=== AUDIT AFTER PATCH OVERRIDE ==="
           set +e
-          npm audit --json | tee npm-audit.json
-          code=${PIPESTATUS[0]}
-          echo "npm_audit_exit_code=$code"
+          npm audit --json
+          echo "npm_audit_exit_code=$?"
           exit 0
