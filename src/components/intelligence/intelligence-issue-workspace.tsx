@@ -23,7 +23,8 @@ import { Surface } from "@/components/ui/surface";
 import type { ConversationPriority, EmergingIssue, Priority } from "@/lib/domain";
 import { knowledgeSources, resolveDetail } from "@/lib/mocks/data";
 
-const severityTone: Record<Priority, "neutral" | "info" | "warning" | "danger"> = { untriaged: "neutral", low: "neutral", medium: "info", high: "warning", critical: "danger" };
+const severityTone: Record<Priority, "neutral" | "info" | "warning" | "danger"> = { low: "neutral", medium: "info", high: "warning", critical: "danger" };
+const conversationPriorityTone: Record<ConversationPriority, "neutral" | "info" | "warning" | "danger"> = { untriaged: "neutral", low: "neutral", medium: "info", high: "warning", critical: "danger" };
 
 function Metric({ label, value }: { label: string; value: string }) {
   return <div><div className="text-[10px] uppercase tracking-[0.1em] text-[var(--muted-foreground)]">{label}</div><div className="mt-1 text-lg font-semibold">{value}</div></div>;
@@ -102,7 +103,7 @@ export function IntelligenceIssueWorkspace({ issue }: { issue: EmergingIssue }) 
               {representatives.map((conversation) => (
                 <Link key={conversation.id} href={`/inbox/${conversation.id}`} className="grid gap-2 px-4 py-3 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)] md:grid-cols-[180px_1fr_auto] md:items-center">
                   <div><div className="text-xs font-semibold">{conversation.customer.name}</div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">{conversation.customer.locale ?? "en"} · {conversation.id}</div></div>
-                  <div className="min-w-0"><div className="truncate text-xs">{conversation.messages.find((message) => message.author === "customer")?.body}</div><div className="mt-1 flex gap-1.5"><Badge tone={severityTone[conversation.priority]}>{conversation.priority}</Badge><Badge>{conversation.category}</Badge></div></div>
+                  <div className="min-w-0"><div className="truncate text-xs">{conversation.messages.find((message) => message.author === "customer")?.body}</div><div className="mt-1 flex gap-1.5"><Badge tone={conversationPriorityTone[conversation.priority]}>{conversation.priority}</Badge><Badge>{conversation.category}</Badge></div></div>
                   <ArrowRight className="size-3.5 text-[var(--muted-foreground)]" />
                 </Link>
               ))}
