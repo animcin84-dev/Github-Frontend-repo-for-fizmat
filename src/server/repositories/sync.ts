@@ -64,10 +64,12 @@ export async function finishSyncRun(id: string, input: {
 }
 
 export async function registerPubSubNotification(input: { messageId: string; emailAddress: string; historyId: string }) {
-  const [row] = await getDb().insert(pubsubNotifications).values(input).onConflictDoNothing({
+  const [created] = await getDb().insert(pubsubNotifications).values(input).onConflictDoNothing({
     target: pubsubNotifications.messageId,
   }).returning();
-  return Boolean(row);
+  if (created) return { isNew: true, processed: false };
+  const [existing] = await getDb().select().from(pubsubNotifications).where(eq(pubsubNotifications.messageId, input.messageId)).limit(1);
+  return { isNew: false, processed: Boolean(existing?.processedAt) };
 }
 
 export async function markPubSubProcessed(messageId: string) {

@@ -108,8 +108,8 @@ describe("database idempotency and synchronization", () => {
 
   test("duplicate Pub/Sub notification and overlapping sync lock are rejected idempotently", async () => {
     const account = await seedIntegration();
-    expect(await registerPubSubNotification({ messageId: "pubsub-1", emailAddress: account.emailAddress, historyId: "10" })).toBe(true);
-    expect(await registerPubSubNotification({ messageId: "pubsub-1", emailAddress: account.emailAddress, historyId: "10" })).toBe(false);
+    expect(await registerPubSubNotification({ messageId: "pubsub-1", emailAddress: account.emailAddress, historyId: "10" })).toEqual({ isNew: true, processed: false });
+    expect(await registerPubSubNotification({ messageId: "pubsub-1", emailAddress: account.emailAddress, historyId: "10" })).toEqual({ isNew: false, processed: false });
     expect(await acquireSyncLock(account.id, "first")).toBe(true);
     expect(await acquireSyncLock(account.id, "second")).toBe(false);
     await releaseSyncLock(account.id);

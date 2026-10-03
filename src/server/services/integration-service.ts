@@ -14,6 +14,7 @@ import {
   disconnectIntegration,
   getActiveGmailIntegration,
   getGmailIntegrationByEmail,
+  getIntegrationDataCounts,
   getLatestSyncRun,
   upsertGmailIntegration,
 } from "@/server/repositories/integrations";
@@ -55,7 +56,7 @@ export async function getGmailIntegrationStatus(): Promise<IntegrationStatusDTO>
 
   const account = await getActiveGmailIntegration();
   if (!account) return { mode, connected: false, watchConfigured: Boolean(process.env.GMAIL_PUBSUB_TOPIC) };
-  const latest = await getLatestSyncRun(account.id);
+  const [latest, counts] = await Promise.all([getLatestSyncRun(account.id), getIntegrationDataCounts(account.id)]);
   return {
     mode,
     connected: true,
@@ -71,6 +72,8 @@ export async function getGmailIntegrationStatus(): Promise<IntegrationStatusDTO>
     watchConfigured: Boolean(process.env.GMAIL_PUBSUB_TOPIC),
     syncQuery: account.syncQuery,
     backfillDays: account.backfillDays,
+    storedThreads: counts.threads,
+    storedMessages: counts.messages,
     latestSync: latest ? {
       id: latest.id,
       kind: latest.kind,

@@ -1,6 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
-import { integrationAccounts, syncRuns } from "@/server/db/schema";
+import { conversations, integrationAccounts, messages, syncRuns } from "@/server/db/schema";
 
 export type IntegrationAccountRow = typeof integrationAccounts.$inferSelect;
 
@@ -85,12 +85,24 @@ export async function updateIntegrationCursor(id: string, historyId: string, syn
   }).where(eq(integrationAccounts.id, id));
 }
 
-export async function updateWatchState(id: string, input: { historyId: string; expiration: Date }) {
+export async function updateWatchState(id: string, expiration: Date) {
+  // users.watch returns a current historyId, but it must not replace the persisted
+  // synchronization cursor before changes since the old cursor have been reconciled.
   await getDb().update(integrationAccounts).set({
-    lastHistoryId: input.historyId,
-    watchExpiration: input.expiration,
+    watchExpiration: expiration,
     lastError: null,
   }).where(eq(integrationAccounts.id, id));
+}
+
+export async function getIntegrationDataCounts(integrationAccountId: string) {
+  const [[threadCount], [messageCount]] = await Promise.all([
+    getDb().select({ value: count() }).from(conversations).where(eq(conversations.integrationAccountId, integrationAccountId)),
+    getDb().select({ value: count() }).from(messages).where(eq(messages.integrationAccountId, integrationAccountId)),
+  ]);
+  return {
+    threads: Number(threadCount?.value ?? 0),
+    messages: Number(messageCount?.value ?? 0),
+  };
 }
 
 export async function disconnectIntegration(id: string) {

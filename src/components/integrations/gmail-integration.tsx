@@ -110,7 +110,7 @@ export function GmailIntegration() {
                   <dt className="text-[var(--muted-foreground)]">Mode</dt><dd>Real data</dd>
                   <dt className="text-[var(--muted-foreground)]">Backfill</dt><dd>{data.backfillDays ?? 30} days</dd>
                   <dt className="text-[var(--muted-foreground)]">Sync query</dt><dd className="break-all font-mono text-[10px]">{data.syncQuery}</dd>
-                  <dt className="text-[var(--muted-foreground)]">Last history ID</dt><dd className="font-mono text-[10px]">{data.lastHistoryId ?? "—"}</dd>
+                  <dt className="text-[var(--muted-foreground)]">Last history ID</dt><dd className="font-mono text-[10px]">{data.lastHistoryId ?? "—"}</dd><dt className="text-[var(--muted-foreground)]">Stored threads</dt><dd className="font-semibold">{data.storedThreads?.toLocaleString() ?? "—"}</dd><dt className="text-[var(--muted-foreground)]">Stored messages</dt><dd className="font-semibold">{data.storedMessages?.toLocaleString() ?? "—"}</dd>
                 </dl>
               </section>
               <section className="p-4">

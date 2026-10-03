@@ -41,6 +41,8 @@ export interface IntegrationStatusDTO {
   watchConfigured: boolean;
   syncQuery?: string;
   backfillDays?: number;
+  storedThreads?: number;
+  storedMessages?: number;
   latestSync?: {
     id: string;
     kind: string;

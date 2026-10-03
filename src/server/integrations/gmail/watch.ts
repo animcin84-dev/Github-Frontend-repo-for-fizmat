@@ -24,7 +24,7 @@ export async function renewGmailWatch(integrationId: string) {
     .filter(Boolean);
   const response = await new GmailRestClient(account).watch(topic, labelIds);
   const expiration = new Date(Number(response.expiration));
-  await updateWatchState(account.id, { historyId: response.historyId, expiration });
+  await updateWatchState(account.id, expiration);
   return { historyId: response.historyId, expiration: expiration.toISOString() };
 }
 
@@ -61,15 +61,16 @@ export async function handleGmailPubSub(request: Request, payload: unknown) {
   if (!account || account.status !== "connected") {
     throw new SupportError("pubsub_invalid", "No connected Gmail integration matches the notification email", { status: 404 });
   }
-  const isNew = await registerPubSubNotification({
+  const notification = await registerPubSubNotification({
     messageId: envelope.message.messageId,
     emailAddress: data.emailAddress.toLowerCase(),
     historyId: data.historyId,
   });
-  if (!isNew) return { duplicate: true, synced: false };
+  if (!notification.isNew && notification.processed) return { duplicate: true, synced: false };
 
   // Push is only a trigger. Gmail history remains the incremental source of truth.
+  // If synchronization fails before processedAt is recorded, a Pub/Sub retry may safely try again.
   const sync = await runIncrementalGmailSync({ integrationId: account.id, kind: "incremental" });
   await markPubSubProcessed(envelope.message.messageId);
-  return { duplicate: false, synced: true, sync };
+  return { duplicate: !notification.isNew, synced: true, sync };
 }
