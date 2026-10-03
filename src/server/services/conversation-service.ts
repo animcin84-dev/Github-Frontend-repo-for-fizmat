@@ -28,7 +28,7 @@ function status(value: string): ConversationStatus {
 }
 
 export async function getConversationListForCurrentMode(): Promise<ConversationListItem[]> {
-  if (supportDataMode() === "mock") return getMockList();
+  if (supportDataMode() === "mock") return (await getMockList()).map((item) => ({ ...item, source: "mock" as const, providerLabel: "Fixture", analysisState: "simulated" as const }));
   const rows = await listConversationRows();
   return Promise.all(rows.map(async ({ conversation, customer, integration }) => ({
     id: conversation.id,
@@ -53,7 +53,8 @@ export async function getConversationListForCurrentMode(): Promise<ConversationL
 export async function getConversationDetailForCurrentMode(id: string): Promise<ConversationDetail | undefined> {
   if (supportDataMode() === "mock") {
     try {
-      return await getMockDetail(id);
+      const detail = await getMockDetail(id);
+      return { ...detail, source: "mock" as const, providerLabel: "Fixture", analysisState: "simulated" as const, replyMode: "mock" as const };
     } catch {
       return undefined;
     }

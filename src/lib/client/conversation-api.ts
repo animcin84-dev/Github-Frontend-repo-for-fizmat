@@ -22,3 +22,15 @@ export async function sendConversationReply(id: string, input: { text: string; c
     body: JSON.stringify(input),
   }));
 }
+
+export async function getInboxIntegrationStatus() {
+  return readJson<import("@/server/contracts").IntegrationStatusDTO>(
+    await fetch("/api/integrations/gmail/status", { cache: "no-store" }),
+  );
+}
+
+export async function syncInboxNow() {
+  return readJson<{ messagesFound: number; messagesInserted: number; messagesSkipped: number; threadsFound: number }>(
+    await fetch("/api/integrations/gmail/sync", { method: "POST" }),
+  );
+}

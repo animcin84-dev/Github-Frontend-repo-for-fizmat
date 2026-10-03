@@ -1,2 +1,7 @@
-import { PlannedSurface } from "@/components/ui/planned-surface";
-export default function Page() { return <PlannedSurface title="Integrations" subtitle="Connected support systems and health" focus={["Connector state", "Sync health", "Permissions", "Degraded integration"]} />; }
+import { Suspense } from "react";
+import { GmailIntegration } from "@/components/integrations/gmail-integration";
+import { LoadingState } from "@/components/ui/page-state";
+
+export default function IntegrationsPage() {
+  return <Suspense fallback={<LoadingState label="Loading integrations…" />}><GmailIntegration /></Suspense>;
+}
