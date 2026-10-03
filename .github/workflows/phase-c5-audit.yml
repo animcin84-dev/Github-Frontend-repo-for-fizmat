@@ -1,0 +1,25 @@
+name: phase-c5-audit
+
+on:
+  push:
+    branches: ["feat/phase-d-ai-quality"]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: npm audit report
+        shell: bash
+        run: |
+          set +e
+          npm audit --json | tee npm-audit.json
+          code=${PIPESTATUS[0]}
+          echo "npm_audit_exit_code=$code"
+          exit 0
