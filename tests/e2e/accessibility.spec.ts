@@ -12,6 +12,11 @@ const criticalRoutes = [
   "/ai-quality?tab=failures",
   "/ai-quality?tab=evaluations",
   "/ai-quality?tab=shadow",
+  "/automation",
+  "/automation?tab=policies",
+  "/automation?tab=procedures",
+  "/automation?tab=rollouts",
+  "/automation?tab=audit",
 ];
 
 for (const route of criticalRoutes) {
