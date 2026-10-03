@@ -127,6 +127,9 @@ export async function sendManualGmailReply(input: {
     clientRequestId: input.clientRequestId,
   });
   if (!operation) throw new SupportError("database_failed", "Could not create outbound operation");
+  if (operation.conversationId !== context.conversation.id) {
+    throw new SupportError("validation_failed", "This reply request belongs to another conversation", { status: 409 });
+  }
   if (operation.status === "sent") {
     return {
       operationId: operation.id,

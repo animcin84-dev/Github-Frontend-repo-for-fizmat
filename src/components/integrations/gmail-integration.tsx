@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import type { IntegrationStatusDTO } from "@/server/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LoadingState } from "@/components/ui/page-state";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
 import { Surface } from "@/components/ui/surface";
 
 async function json<T>(response: Response): Promise<T> {
@@ -75,6 +75,7 @@ export function GmailIntegration() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Disconnect failed"),
   });
 
+  if (statusQuery.isError) return <ErrorState detail={statusQuery.error.message} />;
   if (statusQuery.isLoading || !statusQuery.data) return <LoadingState label="Loading Gmail integration…" />;
 
   const data = statusQuery.data;

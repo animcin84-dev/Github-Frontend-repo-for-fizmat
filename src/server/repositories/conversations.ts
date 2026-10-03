@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
+import { isDatabaseConversationId } from "@/lib/conversation-selection";
 import {
   attachments,
   conversations,
@@ -139,6 +140,7 @@ export async function listConversationRows(limit = 500) {
 }
 
 export async function getConversationContext(id: string) {
+  if (!isDatabaseConversationId(id)) return undefined;
   const [row] = await getDb()
     .select({
       conversation: conversations,

@@ -1,13 +1,14 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres, { type Sql } from "postgres";
 import * as schema from "@/server/db/schema";
+import { SupportError } from "@/server/errors";
 
 let sqlClient: Sql | undefined;
 let database: ReturnType<typeof drizzle<typeof schema>> | undefined;
 
 export function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is required when SUPPORT_DATA_MODE=database");
+  if (!url) throw new SupportError("configuration_missing", "DATABASE_URL is required when SUPPORT_DATA_MODE=database");
   return url;
 }
 

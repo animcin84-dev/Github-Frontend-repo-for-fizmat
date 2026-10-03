@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check": "drizzle-kit check",
-    "test:server": "vitest run tests/server"
+    "test:server": "vitest run tests/server",
+    "dev:gmail": "NODE_OPTIONS='--no-network-family-autoselection --dns-result-order=ipv4first' next dev --hostname 127.0.0.1"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",

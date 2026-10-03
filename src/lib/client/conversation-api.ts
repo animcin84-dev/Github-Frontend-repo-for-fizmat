@@ -11,8 +11,10 @@ export async function getConversationList(): Promise<ConversationListItem[]> {
   return readJson(await fetch("/api/conversations", { cache: "no-store" }));
 }
 
-export async function getConversationDetail(id: string): Promise<ConversationDetail> {
-  return readJson(await fetch(`/api/conversations/${encodeURIComponent(id)}`, { cache: "no-store" }));
+export async function getConversationDetail(id: string): Promise<ConversationDetail | null> {
+  const response = await fetch(`/api/conversations/${encodeURIComponent(id)}`, { cache: "no-store" });
+  if (response.status === 404) return null;
+  return readJson(response);
 }
 
 export async function sendConversationReply(id: string, input: { text: string; clientRequestId: string }): Promise<SendReplyResponse> {

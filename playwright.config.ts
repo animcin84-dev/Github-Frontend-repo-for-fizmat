@@ -17,9 +17,15 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "npm run start",
+    command: "npm run start -- --hostname 127.0.0.1",
     url: "http://127.0.0.1:3000/overview",
-    reuseExistingServer: !process.env.CI,
+    // Never reuse the real Gmail dev server for fixture-based CI/browser tests.
+    reuseExistingServer: false,
+    env: {
+      SUPPORT_DATA_MODE: "mock",
+      GOOGLE_CLIENT_ID: "",
+      GOOGLE_CLIENT_SECRET: "",
+    },
     timeout: 120_000,
   },
   projects: [

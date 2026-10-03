@@ -79,6 +79,8 @@ export async function runFullGmailSync(input: {
   try {
     await updateIntegrationSyncState(account.id, "syncing");
     const client = clientFor(account, input.client);
+    // Keep arrivals during backfill available to the next incremental sync.
+    const { historyId: baselineHistoryId } = await client.getProfile();
     const maxThreads = Number(process.env.GMAIL_SYNC_MAX_THREADS ?? 0);
     let pageToken: string | undefined;
 
@@ -97,15 +99,14 @@ export async function runFullGmailSync(input: {
       pageToken = page.nextPageToken;
     } while (pageToken);
 
-    const profile = await client.getProfile();
-    await updateIntegrationCursor(account.id, profile.historyId);
+    await updateIntegrationCursor(account.id, baselineHistoryId);
     await finishSyncRun(run.id, {
       status: "succeeded",
       ...counts,
-      historyIdAfter: profile.historyId,
+      historyIdAfter: baselineHistoryId,
     });
     serverLog("gmail_sync_completed", { integrationId: account.id, syncRunId: run.id, kind: input.kind ?? "initial", messagesFound: counts.messagesFound, messagesInserted: counts.messagesInserted, messagesSkipped: counts.messagesSkipped, threadsFound: counts.threadsFound, latencyMs: Date.now() - startedAt });
-    return { runId: run.id, ...counts, historyIdAfter: profile.historyId, recovered: input.kind === "recovery" };
+    return { runId: run.id, ...counts, historyIdAfter: baselineHistoryId, recovered: input.kind === "recovery" };
   } catch (error) {
     const normalized = toSupportError(error);
     await updateIntegrationSyncState(account.id, "error", normalized.code);

@@ -32,10 +32,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LoadingState } from "@/components/ui/page-state";
+import { ErrorState, LoadingState } from "@/components/ui/page-state";
 import type { ConversationDetail, ConversationListItem, ConversationPriority, PolicyDecision } from "@/lib/domain";
 import { getConversationDetail, getConversationList, getInboxIntegrationStatus, sendConversationReply, syncInboxNow } from "@/lib/client/conversation-api";
 import { cn } from "@/lib/utils";
+import { resolveInboxConversationId } from "@/lib/conversation-selection";
 
 const priorityTone: Record<ConversationPriority, "neutral" | "info" | "warning" | "danger"> = { untriaged: "neutral", low: "neutral", medium: "info", high: "warning", critical: "danger" };
 
@@ -62,9 +63,10 @@ function automationPreviewForDecision(decision: PolicyDecision) {
 
 
 function useViewportFlags() {
-  const [flags, setFlags] = useState({ narrow: false, showQueues: true, showInspector: true });
+  const [flags, setFlags] = useState({ ready: false, narrow: false, showQueues: true, showInspector: true });
   useEffect(() => {
     const update = () => setFlags({
+      ready: true,
       narrow: window.innerWidth < 768,
       showQueues: window.innerWidth >= 1120,
       showInspector: window.innerWidth >= 1360,
@@ -126,7 +128,7 @@ function ThreadPanel({ detail, onOpenInspector }: { detail: ConversationDetail; 
   </div>;
 }
 
-function EvidenceInspector({ detail, draftText, setDraftText, actionState, setActionState }: { detail: ConversationDetail; draftText: string; setDraftText: (value: string) => void; actionState: string; setActionState: (value: string) => void }) {
+function EvidenceInspector({ detail, draftText, setDraftText, actionState, setActionState, reserveCloseButtonSpace = false }: { detail: ConversationDetail; draftText: string; setDraftText: (value: string) => void; actionState: string; setActionState: (value: string) => void; reserveCloseButtonSpace?: boolean }) {
   const blocked = detail.aiDraft?.state === "blocked" || detail.policyDecisions.some((decision) => decision.decision === "blocked");
   const [reviewingRealReply, setReviewingRealReply] = useState(false);
   const [realRequestId, setRealRequestId] = useState("");
@@ -161,7 +163,7 @@ function EvidenceInspector({ detail, draftText, setDraftText, actionState, setAc
       }
     };
 
-    return <div className="flex h-full min-h-0 flex-col bg-[var(--surface-1)]"><div className="flex h-[58px] shrink-0 items-center justify-between border-b border-[var(--border)] px-3"><div><div className="text-xs font-semibold">Real Gmail reply</div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Explicit operator action · no AI auto-send</div></div><Badge tone="success">REAL</Badge></div>
+    return <div className="flex h-full min-h-0 flex-col bg-[var(--surface-1)]"><div className={cn("flex h-[58px] shrink-0 items-center justify-between border-b border-[var(--border)] px-3", reserveCloseButtonSpace && "pr-12")}><div><div className="text-xs font-semibold">Real Gmail reply</div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Explicit operator action · no AI auto-send</div></div><Badge tone="success">REAL</Badge></div>
       <div className="min-h-0 flex-1 overflow-auto p-3"><div className="space-y-3">
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3"><div className="flex items-center justify-between gap-2"><div className="text-xs font-semibold">Provider provenance</div><Badge>Gmail</Badge></div><div className="mt-2 break-all font-mono text-[10px] text-[var(--muted-foreground)]">Integration {detail.integrationAccountId} · thread {detail.providerConversationId}</div></section>
         <section className="rounded-lg border border-[var(--border)] p-3"><div className="text-xs font-semibold">Analysis boundary</div><div className="mt-3 grid gap-2 text-xs"><div className="flex items-center justify-between"><span>AI analysis</span><Badge tone="warning">Pending</Badge></div><div className="flex items-center justify-between"><span>Knowledge evidence</span><Badge>Not generated</Badge></div><div className="flex items-center justify-between"><span>Automation</span><Badge>Not evaluated</Badge></div></div></section>
@@ -174,7 +176,7 @@ function EvidenceInspector({ detail, draftText, setDraftText, actionState, setAc
     </div>;
   }
 
-  return <div className="flex h-full min-h-0 flex-col bg-[var(--surface-1)]"><div className="flex h-[58px] shrink-0 items-center justify-between border-b border-[var(--border)] px-3"><div><div className="flex items-center gap-1.5 text-xs font-semibold">AI & evidence <Badge>SIMULATION</Badge></div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Deterministic fixture mode · measured readiness, not self-reported confidence</div></div><Badge tone={blocked ? "danger" : "success"}>{blocked ? "Needs human" : "Grounded"}</Badge></div>
+  return <div className="flex h-full min-h-0 flex-col bg-[var(--surface-1)]"><div className={cn("flex h-[58px] shrink-0 items-center justify-between border-b border-[var(--border)] px-3", reserveCloseButtonSpace && "pr-12")}><div><div className="flex items-center gap-1.5 text-xs font-semibold">AI & evidence <Badge>SIMULATION</Badge></div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Deterministic fixture mode · measured readiness, not self-reported confidence</div></div><Badge tone={blocked ? "danger" : "success"}>{blocked ? "Needs human" : "Grounded"}</Badge></div>
   <div className="min-h-0 flex-1 overflow-auto p-3"><div className="space-y-3"><ReadinessSummary detail={detail} />
   <section className="rounded-lg border border-[var(--border)]"><div className="border-b border-[var(--border)] px-3 py-2"><div className="flex items-center gap-2 text-xs font-semibold"><FileText className="size-3.5" />Evidence <Badge>{detail.evidence.length}</Badge></div></div><div className="divide-y divide-[var(--border)]">{detail.evidence.length ? detail.evidence.map((source) => {
     const knowledgeSourceId = resolveKnowledgeSourceId(source);
@@ -204,7 +206,7 @@ function ConversationWorkspace({ detail, showInspector }: { detail: Conversation
       <button aria-label="Close conversation inspector" onClick={() => setInspectorOpen(false)} className="fixed inset-0 top-12 z-40 bg-black/30" />
       <aside role="dialog" aria-modal="true" aria-label={detail.replyMode === "gmail_real" ? "Gmail reply inspector" : "AI and evidence inspector"} className="fixed inset-y-12 right-0 z-50 w-[min(94vw,440px)] border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl">
         <button onClick={() => setInspectorOpen(false)} aria-label="Close conversation inspector" className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-md bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button>
-        <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} />
+        <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} reserveCloseButtonSpace />
       </aside>
     </> : null}
   </div>;
@@ -225,7 +227,7 @@ function MobileConversationWorkspace({ detail, onBack }: { detail: ConversationD
       <button aria-label="Close AI and evidence inspector" onClick={() => setEvidenceOpen(false)} className="fixed inset-0 top-12 z-40 bg-black/30" />
       <aside role="dialog" aria-modal="true" aria-label={detail.replyMode === "gmail_real" ? "Gmail reply inspector" : "AI and evidence inspector"} className="fixed inset-y-12 right-0 z-50 w-[min(94vw,420px)] border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl">
         <button onClick={() => setEvidenceOpen(false)} aria-label="Close AI and evidence inspector" className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-md bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button>
-        <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} />
+        <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} reserveCloseButtonSpace />
       </aside>
     </> : null}
   </div>;
@@ -241,21 +243,22 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
   const [channel, setChannel] = useQueryState("channel", { defaultValue: "" });
   const [ai, setAi] = useQueryState("ai", { defaultValue: "" });
   const [sla, setSla] = useQueryState("sla", { defaultValue: "" });
-  const [selectedId, setSelectedId] = useState(initialConversationId ?? "conv-00001");
   const [mobileDetailOpen, setMobileDetailOpen] = useState(Boolean(initialConversationId));
 
   const listQuery = useQuery({ queryKey: ["conversations"], queryFn: getConversationList });
   const integrationQuery = useQuery({ queryKey: ["inbox-integration-status"], queryFn: getInboxIntegrationStatus });
   const resolvedSelectedId = useMemo(() => {
-    const items = listQuery.data ?? [];
-    if (!items.length || initialConversationId || items.some((item) => item.id === selectedId)) return selectedId;
-    return items[0].id;
-  }, [initialConversationId, listQuery.data, selectedId]);
+    if (!listQuery.isSuccess || !integrationQuery.isSuccess) return undefined;
+    return resolveInboxConversationId(listQuery.data, initialConversationId, integrationQuery.data.mode);
+  }, [initialConversationId, listQuery.data, listQuery.isSuccess, integrationQuery.data, integrationQuery.isSuccess]);
   const detailQuery = useQuery({
     queryKey: ["conversation", resolvedSelectedId],
-    queryFn: () => getConversationDetail(resolvedSelectedId),
+    queryFn: () => getConversationDetail(resolvedSelectedId!),
     enabled: Boolean(resolvedSelectedId),
   });
+  const recoveredSelectedId = detailQuery.isSuccess && detailQuery.data === null
+    ? resolveInboxConversationId(listQuery.data ?? [], undefined, integrationQuery.data?.mode ?? "mock")
+    : resolvedSelectedId;
 
   const filtered = useMemo(() => {
     const items = listQuery.data ?? [];
@@ -269,14 +272,17 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
   }, [listQuery.data]);
 
   useEffect(() => {
-    if (!resolvedSelectedId || resolvedSelectedId === selectedId || initialConversationId) return;
+    if (!flags.ready || !listQuery.isSuccess || !integrationQuery.isSuccess || detailQuery.isError) return;
+    // Keep the mobile list route open until the operator selects a conversation.
+    if (flags.narrow && !initialConversationId) return;
+    if (recoveredSelectedId === initialConversationId) return;
     const query = searchParams.toString();
-    router.replace(`/inbox/${resolvedSelectedId}${query ? `?${query}` : ""}`, { scroll: false });
-  }, [initialConversationId, resolvedSelectedId, router, searchParams, selectedId]);
+    const path = recoveredSelectedId ? `/inbox/${recoveredSelectedId}` : "/inbox";
+    router.replace(`${path}${query ? `?${query}` : ""}`, { scroll: false });
+  }, [initialConversationId, recoveredSelectedId, listQuery.isSuccess, integrationQuery.isSuccess, detailQuery.isError, flags.ready, flags.narrow, router, searchParams]);
 
 
   const select = useCallback((id: string) => {
-    setSelectedId(id);
     if (flags.narrow) setMobileDetailOpen(true);
     const query = searchParams.toString();
     router.replace(`/inbox/${id}${query ? `?${query}` : ""}`, { scroll: false });
@@ -299,6 +305,9 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [filtered, resolvedSelectedId, select]);
 
+  if (listQuery.isError || integrationQuery.isError) {
+    return <ErrorState detail={listQuery.error?.message ?? integrationQuery.error?.message ?? "Could not load inbox"} />;
+  }
   if (listQuery.isLoading || integrationQuery.isLoading) return <LoadingState label="Loading inbox…" />;
   const detail = detailQuery.data;
 
@@ -308,7 +317,7 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
       <div className="flex items-center gap-1 text-[10px] text-[var(--muted-foreground)]"><kbd className="rounded border px-1">J/K</kbd><span>next</span></div>
     </div>
     <FilterBar q={q} setQ={setQ} priority={priority} setPriority={setPriority} channel={channel} setChannel={setChannel} ai={ai} setAi={setAi} sla={sla} setSla={setSla} />
-    {filtered.length ? <div className="min-h-0 flex-1"><ConversationList items={filtered} selectedId={resolvedSelectedId} onSelect={select} /></div> : integrationQuery.data?.mode === "database" && counts.all === 0 ? <div className="grid flex-1 place-items-center p-6 text-center"><div><Mail className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No Gmail conversations synced yet.</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">This real inbox is empty; it does not fall back to deterministic fixtures.</div><Button className="mt-3" size="sm" onClick={async () => { try { const result = await syncInboxNow(); toast.success("Gmail sync complete", { description: `${result.messagesInserted} imported · ${result.messagesSkipped} duplicates skipped` }); await queryClient.invalidateQueries({ queryKey: ["conversations"] }); await queryClient.invalidateQueries({ queryKey: ["inbox-integration-status"] }); } catch (error) { toast.error(error instanceof Error ? error.message : "Sync failed"); } }}><Mail className="size-3.5" />Sync now</Button></div></div> : <div className="grid flex-1 place-items-center p-6 text-center"><div><Search className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No conversations match</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Clear one or more URL-backed filters.</div></div></div>}
+    {filtered.length ? <div className="min-h-0 flex-1"><ConversationList items={filtered} selectedId={resolvedSelectedId ?? ""} onSelect={select} /></div> : integrationQuery.data?.mode === "database" && counts.all === 0 ? <div className="grid flex-1 place-items-center p-6 text-center"><div><Mail className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No Gmail conversations synced yet.</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">This real inbox is empty; it does not fall back to deterministic fixtures.</div><Button className="mt-3" size="sm" onClick={async () => { try { const result = await syncInboxNow(); toast.success("Gmail sync complete", { description: `${result.messagesInserted} imported · ${result.messagesSkipped} duplicates skipped` }); await queryClient.invalidateQueries({ queryKey: ["conversations"] }); await queryClient.invalidateQueries({ queryKey: ["inbox-integration-status"] }); } catch (error) { toast.error(error instanceof Error ? error.message : "Sync failed"); } }}><Mail className="size-3.5" />Sync now</Button></div></div> : <div className="grid flex-1 place-items-center p-6 text-center"><div><Search className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No conversations match</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Clear one or more URL-backed filters.</div></div></div>}
   </div>;
 
   if (flags.narrow) {
@@ -317,6 +326,10 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
       const query = searchParams.toString();
       router.replace(`/inbox${query ? `?${query}` : ""}`, { scroll: false });
     };
+    if (mobileDetailOpen && detailQuery.isError) return <div className="flex h-[calc(100dvh-48px)] flex-col">
+      <div className="border-b border-[var(--border)] p-2"><Button variant="ghost" size="sm" onClick={closeMobileDetail}><ArrowLeft className="size-3.5" />Inbox</Button></div>
+      <ErrorState detail={detailQuery.error.message} />
+    </div>;
     return <div className="h-[calc(100dvh-48px)] min-w-0 overflow-hidden border-t-0 border-[var(--border)]">
       {mobileDetailOpen && detail ? <MobileConversationWorkspace key={detail.id} detail={detail} onBack={closeMobileDetail} /> : listPane}
     </div>;
@@ -326,6 +339,6 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
     {flags.showQueues ? <><Panel id="queues" defaultSize="196px" minSize="160px" maxSize="240px" groupResizeBehavior="preserve-pixel-size"><QueueRail counts={counts} setPriority={setPriority} setSla={setSla} /></Panel><Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" /></> : null}
     <Panel id="list" defaultSize="350px" minSize="300px" maxSize="430px" groupResizeBehavior="preserve-pixel-size">{listPane}</Panel>
     <Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" />
-    <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <ConversationWorkspace key={detail.id} detail={detail} showInspector={flags.showInspector} /> : integrationQuery.data?.mode === "database" && counts.all === 0 ? <div className="grid h-full place-items-center p-6 text-center"><div><Mail className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No Gmail conversation selected</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Run a sync after connecting the dedicated support mailbox.</div></div></div> : <LoadingState label="Loading conversation detail…" />}</div></Panel>
+    <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <ConversationWorkspace key={detail.id} detail={detail} showInspector={flags.showInspector} /> : integrationQuery.data?.mode === "database" && counts.all === 0 ? <div className="grid h-full place-items-center p-6 text-center"><div><Mail className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No Gmail conversation selected</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Run a sync after connecting the dedicated support mailbox.</div></div></div> : detailQuery.isError ? <ErrorState detail={detailQuery.error.message} /> : <LoadingState label="Loading conversation detail…" />}</div></Panel>
   </Group></div>;
 }

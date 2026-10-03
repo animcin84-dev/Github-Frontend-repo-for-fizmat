@@ -38,7 +38,7 @@ export function safeErrorResponse(error: unknown) {
   const normalized = toSupportError(error);
   return {
     error: normalized.code,
-    message: normalized.message,
+    message: normalized.code === "unknown" ? "An unexpected server error occurred. Please try again." : normalized.message,
     retryable: normalized.retryable,
   };
 }

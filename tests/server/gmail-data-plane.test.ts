@@ -1,10 +1,11 @@
-import { beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { getDb, getSqlClient } from "@/server/db/client";
 import { integrationAccounts, messages } from "@/server/db/schema";
 import { encryptToken } from "@/server/crypto/token-encryption";
 import { GmailHttpError } from "@/server/integrations/gmail/gmail-client";
 import { normalizeGmailMessage } from "@/server/integrations/gmail/parser";
+import { buildReplyMime } from "@/server/integrations/gmail/send";
 import { runFullGmailSync, runIncrementalGmailSync } from "@/server/integrations/gmail/sync";
 import { renewGmailWatch } from "@/server/integrations/gmail/watch";
 import { getConversationContext, persistNormalizedMessage } from "@/server/repositories/conversations";
@@ -85,6 +86,44 @@ describe("database idempotency and synchronization", () => {
     expect(result.messagesInserted).toBe(2);
     const [updated] = await getDb().select().from(integrationAccounts).where(eq(integrationAccounts.id, account.id));
     expect(updated.lastHistoryId).toBe("333");
+  });
+
+  test.each(["initial", "recovery"] as const)("%s backfill leaves concurrent arrivals for incremental sync", async (kind) => {
+    const account = await seedIntegration();
+    class ArrivalDuringBackfillClient extends FixtureGmailClient {
+      override async getThread(threadId: string) {
+        const snapshot = await super.getThread(threadId);
+        this.profile.historyId = "701";
+        return snapshot;
+      }
+    }
+    const client = new ArrivalDuringBackfillClient();
+    client.profile.historyId = "700";
+    client.threadPages = [
+      { threads: [{ id: "arrival-thread" }] },
+      { threads: [{ id: "arrival-thread" }] },
+    ];
+    client.threads.set("arrival-thread", { id: "arrival-thread", messages: [{ id: "before-backfill", threadId: "arrival-thread" }] });
+    for (const id of ["before-backfill", "during-backfill"]) {
+      client.raws.set(id, rawFixture({ id, threadId: "arrival-thread", from: "customer@example.test", to: "support@example.test" }));
+    }
+    client.historyPages = [{
+      history: [{ id: "701", messagesAdded: [{ message: { id: "during-backfill", threadId: "arrival-thread" } }] }],
+      historyId: "701",
+    }];
+
+    const backfill = await runFullGmailSync({ integrationId: account.id, kind, client });
+    expect(backfill.messagesInserted).toBe(1);
+    expect(backfill.historyIdAfter).toBe("700");
+    const [afterBackfill] = await getDb().select().from(integrationAccounts).where(eq(integrationAccounts.id, account.id));
+    expect(afterBackfill.lastHistoryId).toBe("700");
+
+    const incremental = await runIncrementalGmailSync({ integrationId: account.id, client });
+    expect(incremental.messagesInserted).toBe(1);
+    expect(incremental.historyIdAfter).toBe("701");
+    const rows = await getDb().select().from(messages);
+    expect(rows.map((row) => row.providerMessageId).sort()).toEqual(["before-backfill", "during-backfill"]);
+    expect(new Set(rows.map((row) => row.conversationId)).size).toBe(1);
   });
 
   test("incremental sync paginates history and persists the returned cursor", async () => {
@@ -246,7 +285,7 @@ describe("manual outbound reply", () => {
   }
 
   test("outbound idempotency prevents operator double-send and keeps Gmail threadId", async () => {
-    const { conversationId } = await seedConversation();
+    const { account, conversationId } = await seedConversation();
     const client = new FixtureGmailClient();
     client.raws.set("sent-provider-1", rawFixture({
       id: "sent-provider-1",
@@ -257,6 +296,7 @@ describe("manual outbound reply", () => {
       messageId: "<sent@example.test>",
       inReplyTo: "<root@example.test>",
       references: ["<root@example.test>"],
+      body: "A deliberate human reply.",
       unread: false,
     }));
     const request = {
@@ -273,6 +313,34 @@ describe("manual outbound reply", () => {
     expect(second.deduplicated).toBe(true);
     expect(client.sendCalls).toHaveLength(1);
     expect(client.sendCalls[0].threadId).toBe("thread-send");
+
+    const operation = await getOutboundOperation(account.id, request.clientRequestId);
+    expect(operation).toMatchObject({ status: "sent", attempt: 1, providerMessageId: "sent-provider-1", providerThreadId: "thread-send" });
+    const beforeSync = await getDb().select().from(messages);
+    expect(beforeSync).toHaveLength(2);
+    expect(beforeSync.find((row) => row.direction === "outbound")).toMatchObject({
+      conversationId,
+      providerMessageId: "sent-provider-1",
+      providerThreadId: "thread-send",
+      textBody: request.text,
+      fromAddress: "support@example.test",
+      toRecipients: [{ email: "customer@example.test" }],
+      receivedAt: null,
+    });
+    expect(beforeSync.find((row) => row.direction === "outbound")?.sentAt).toEqual(new Date("2026-10-03T12:00:00Z"));
+
+    client.threadPages = [{ threads: [{ id: "thread-send" }] }];
+    client.historyPages = [{
+      history: [{ id: "501", messagesAdded: [{ message: { id: "sent-provider-1", threadId: "thread-send" } }] }],
+      historyId: "501",
+    }];
+    const reconciliation = await runIncrementalGmailSync({ integrationId: account.id, client });
+    expect(reconciliation.messagesInserted).toBe(0);
+    expect(reconciliation.messagesSkipped).toBe(1);
+    const afterSync = await getDb().select().from(messages);
+    expect(afterSync).toHaveLength(2);
+    expect(afterSync.filter((row) => row.direction === "outbound")).toHaveLength(1);
+    expect(afterSync.every((row) => row.conversationId === conversationId)).toBe(true);
   });
 
   test("concurrent double-click shares one outbound operation and sends once", async () => {
@@ -318,5 +386,114 @@ describe("manual outbound reply", () => {
     expect(operation?.status).toBe("failed");
     const rows = await getDb().select().from(messages);
     expect(rows.filter((row) => row.direction === "outbound")).toHaveLength(0);
+  });
+
+  test("retry reconciles a lost send response without sending the same reply again", async () => {
+    const { account, conversationId } = await seedConversation();
+    const client = new FixtureGmailClient();
+    client.sendError = new GmailHttpError(503, "send response was lost");
+    const request = {
+      conversationId,
+      text: "A reply whose provider response was lost.",
+      clientRequestId: "55555555-5555-4555-8555-555555555555",
+      client,
+    };
+    await expect(sendManualGmailReply(request)).rejects.toThrow(/not confirmed as sent/i);
+    const mime = await buildReplyMime({
+      mailboxEmail: account.emailAddress,
+      recipientEmail: "customer@example.test",
+      subject: "Need help",
+      text: request.text,
+      inReplyTo: "<root@example.test>",
+      clientRequestId: request.clientRequestId,
+    });
+    client.searchResults = [{ id: "already-sent", threadId: "thread-send" }];
+    client.raws.set("already-sent", rawFixture({
+      id: "already-sent",
+      threadId: "thread-send",
+      from: account.emailAddress,
+      to: "customer@example.test",
+      subject: "Need help",
+      body: request.text,
+      messageId: mime.messageIdHeader,
+      inReplyTo: "<root@example.test>",
+      unread: false,
+    }));
+    const search = vi.spyOn(client, "searchMessages");
+
+    const result = await sendManualGmailReply(request);
+    expect(result).toMatchObject({ status: "sent", deduplicated: true, providerMessageId: "already-sent", providerThreadId: "thread-send" });
+    expect(search).toHaveBeenCalledWith(`rfc822msgid:${mime.messageIdHeader}`);
+    expect(client.sendCalls).toHaveLength(1);
+    const operation = await getOutboundOperation(account.id, request.clientRequestId);
+    expect(operation).toMatchObject({ status: "sent", attempt: 2, providerMessageId: "already-sent", providerThreadId: "thread-send", providerErrorCode: null });
+    const rows = await getDb().select().from(messages);
+    expect(rows).toHaveLength(2);
+    expect(rows.find((row) => row.direction === "outbound")).toMatchObject({ conversationId, providerMessageId: "already-sent", textBody: request.text });
+    expect((await sendManualGmailReply(request)).deduplicated).toBe(true);
+    expect(client.sendCalls).toHaveLength(1);
+  });
+
+  test("a failed reply request cannot be reused for a different conversation", async () => {
+    const { account, conversationId } = await seedConversation();
+    const other = await persistNormalizedMessage(account, await normalizeGmailMessage(rawFixture({
+      id: "other-inbound",
+      threadId: "other-thread",
+      from: "other@example.test",
+      to: account.emailAddress,
+    }), account.emailAddress));
+    const client = new FixtureGmailClient();
+    client.sendError = new GmailHttpError(503, "provider unavailable");
+    const request = {
+      conversationId,
+      text: "Reply to the original customer",
+      clientRequestId: "77777777-7777-4777-8777-777777777777",
+      client,
+    };
+    await expect(sendManualGmailReply(request)).rejects.toThrow(/not confirmed as sent/i);
+    client.sendError = undefined;
+    await expect(sendManualGmailReply({ ...request, conversationId: other.conversationId })).rejects.toMatchObject({ status: 409 });
+    expect(client.sendCalls).toHaveLength(1);
+    expect(await getOutboundOperation(account.id, request.clientRequestId)).toMatchObject({ conversationId, status: "failed", attempt: 1 });
+    expect((await getDb().select().from(messages)).filter((row) => row.direction === "outbound")).toHaveLength(0);
+  });
+
+  test("retry sends after a definite failure and persists fallback when provider reread fails", async () => {
+    const { account, conversationId } = await seedConversation();
+    const client = new FixtureGmailClient();
+    client.sendError = new GmailHttpError(503, "provider unavailable before send");
+    const request = {
+      conversationId,
+      text: "A successful retry persisted from the send response.",
+      clientRequestId: "66666666-6666-4666-8666-666666666666",
+      client,
+    };
+    await expect(sendManualGmailReply(request)).rejects.toThrow(/not confirmed as sent/i);
+    client.sendError = undefined;
+    const search = vi.spyOn(client, "searchMessages");
+
+    const result = await sendManualGmailReply(request);
+    expect(result).toMatchObject({ status: "sent", deduplicated: false, providerMessageId: "sent-provider-1", providerThreadId: "thread-send" });
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(client.sendCalls).toHaveLength(2);
+    const operation = await getOutboundOperation(account.id, request.clientRequestId);
+    expect(operation).toMatchObject({ status: "sent", attempt: 2, providerMessageId: "sent-provider-1", providerThreadId: "thread-send", providerErrorCode: null });
+    const rows = await getDb().select().from(messages);
+    expect(rows).toHaveLength(2);
+    const outbound = rows.find((row) => row.direction === "outbound");
+    expect(outbound).toMatchObject({
+      conversationId,
+      providerMessageId: "sent-provider-1",
+      providerThreadId: "thread-send",
+      textBody: request.text,
+      displayTextBody: request.text,
+      fromAddress: account.emailAddress,
+      receivedAt: null,
+      inReplyTo: "<root@example.test>",
+    });
+    expect(outbound?.sentAt).toBeInstanceOf(Date);
+    expect(outbound?.providerMessageIdHeader).toMatch(/^<support-/);
+    expect((await sendManualGmailReply(request)).deduplicated).toBe(true);
+    expect(client.sendCalls).toHaveLength(2);
   });
 });
