@@ -14,11 +14,11 @@
   --muted-foreground: #66707c;
   --accent: #315ee7;
   --accent-foreground: #ffffff;
-  --success: #0f6b4e;
-  --warning: #78440a;
-  --danger: #a62a32;
-  --info: #2455aa;
-  --ai: #5840a3;
+  --success: #07543b;
+  --warning: #653300;
+  --danger: #8b1f27;
+  --info: #173f83;
+  --ai: #49318d;
   --focus-ring: #4f7cff;
 }
 
@@ -36,11 +36,11 @@ html[data-theme="dark"] {
   --muted-foreground: #929ca8;
   --accent: #6f8cff;
   --accent-foreground: #0b1020;
-  --success: #50b58f;
-  --warning: #daa15b;
-  --danger: #ef7077;
-  --info: #78a2ff;
-  --ai: #aa8cff;
+  --success: #7fd8b5;
+  --warning: #f1bc78;
+  --danger: #ff9299;
+  --info: #9cbcff;
+  --ai: #c6b5ff;
   --focus-ring: #7e9cff;
 }
 
