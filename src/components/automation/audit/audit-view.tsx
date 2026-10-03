@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useQueryState } from "nuqs";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Surface } from "@/components/ui/surface";
 import type { AutomationAuditEvent } from "@/lib/domain";
@@ -23,10 +23,10 @@ type WorkspaceData = Awaited<ReturnType<typeof getAutomationWorkspace>>;
 
 function AuditInspector({ event, data, close }: { event: AutomationAuditEvent; data: WorkspaceData; close: () => void }) {
   const action = data.actions.find((item) => item.id === event.actionId);
-  const execution = event.executionId ? data.auditEvents.find(() => false) : undefined;
   const reversible = action?.reversible ?? false;
   const failed = event.result === "failed";
   const blocked = event.result === "not_executed";
+  const [rollbackPreview, setRollbackPreview] = useState(false);
 
   return (
     <aside aria-label="Automation audit details" className="fixed inset-y-12 right-0 z-50 w-[min(96vw,500px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none">
@@ -80,7 +80,9 @@ function AuditInspector({ event, data, close }: { event: AutomationAuditEvent; d
         <section className="rounded-md border border-[var(--border)] p-3">
           <div className="flex items-center gap-2"><RotateCcw className="size-4" /><div className="text-xs font-semibold">Rollback</div></div>
           <div className="mt-2"><Badge tone={reversible ? "success" : "danger"}>{reversible ? "Rollback available" : "Rollback unavailable"}</Badge></div>
-          <p className="mt-2 text-xs text-[var(--muted-foreground)]">{reversible ? "This action class is modeled as reversible; a real product would preview the compensating action before execution." : "This action class is not safely reversible; recovery requires a separate operator workflow."}</p>
+          <p className="mt-2 text-xs text-[var(--muted-foreground)]">{reversible ? "This action class is modeled as reversible. Preview the compensating operation before any rollback decision." : "This action class is not safely reversible; recovery requires a separate operator workflow."}</p>
+          {reversible ? <button onClick={() => setRollbackPreview((value) => !value)} className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 text-xs font-medium hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><RotateCcw className="size-3.5" />{rollbackPreview ? "Hide rollback preview" : "Preview mock rollback"}</button> : null}
+          {rollbackPreview ? <div className="mt-3 rounded-md border border-[color-mix(in_srgb,var(--warning)_28%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_4%,var(--surface-1))] p-3 text-xs"><div className="font-semibold">Rollback preview · no mutation sent</div><div className="mt-2 grid gap-1 text-[var(--muted-foreground)]"><span>Target execution: <span className="font-mono text-[var(--foreground)]">{event.executionId ?? "not available"}</span></span><span>Compensating action: restore the previously verified provider state.</span><span>Verification: read provider state again before marking rolled back.</span></div></div> : null}
         </section>
 
         <div className="flex flex-wrap gap-2">
