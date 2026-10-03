@@ -6,21 +6,21 @@ test.describe("inbox critical flows", () => {
   });
 
   test("conversation selection preserves URL filters and keyboard navigation ignores inputs", async ({ page }) => {
-    await page.goto("/inbox/conv-00001?priority=high");
+    await page.goto("/inbox/conv-00001?channel=email");
     await expect(page.getByText("Duplicate card charge").first()).toBeVisible();
 
     const search = page.getByPlaceholder("Search conversations");
     await search.focus();
     await page.keyboard.press("j");
     await expect(search).toHaveValue("j");
-    await expect(page).toHaveURL(/conv-00001\?priority=high/);
+    await expect(page).toHaveURL(/conv-00001\?channel=email/);
 
-    await page.goto("/inbox/conv-00001?priority=high");
-    await expect(page.getByText("110 of 5,200")).toBeVisible();
+    await page.goto("/inbox/conv-00001?channel=email");
+    await expect(page.getByText("1,300 of 5,200")).toBeVisible();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await expect(page.getByPlaceholder("Search conversations")).not.toBeFocused();
     await page.keyboard.press("j");
-    await expect(page).toHaveURL(/\/inbox\/conv-00048\?priority=high/);
+    await expect(page).toHaveURL(/\/inbox\/conv-00005\?channel=email/);
   });
 
   test("safe draft mock action works and evidence deep-links to Knowledge", async ({ page }) => {
