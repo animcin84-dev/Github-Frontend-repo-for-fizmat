@@ -1,0 +1,47 @@
+name: phase-b-bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/phase-b-bootstrap.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  phase-b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply Phase B delta
+        shell: bash
+        run: |
+          cat .bootstrap/phase-b.part.* > /tmp/phase-b.tgz.b64
+          test "$(wc -c < /tmp/phase-b.tgz.b64)" -eq 20560
+          base64 -d /tmp/phase-b.tgz.b64 > /tmp/phase-b.tgz
+          tar -tzf /tmp/phase-b.tgz >/dev/null
+          tar -xzf /tmp/phase-b.tgz -C .
+          rm -rf .bootstrap
+          rm -f .github/workflows/phase-b-bootstrap.yml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+      - name: Commit verified Phase B
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: implement Phase B golden path"
+          git push origin HEAD:main
