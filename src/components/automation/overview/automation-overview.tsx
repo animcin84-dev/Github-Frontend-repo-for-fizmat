@@ -46,6 +46,9 @@ export function AutomationOverview({ data }: { data: WorkspaceData }) {
   const [approvalState, setApprovalState] = useState<Record<string, ApprovalRequest["status"]>>({});
 
   const selectedExplanation = data.readinessExplanations.find((item) => item.intent === intent);
+  const controlledCount = data.readiness.filter((item) => item.recommendation === "controlled_automation").length;
+  const approvalCount = data.readiness.filter((item) => item.policy === "human_approval").length;
+  const humanOnlyCount = data.readiness.filter((item) => item.policy === "human_only").length;
   const pending = useMemo(
     () => data.approvals.filter((item) => (approvalState[item.id] ?? item.status) === "pending").slice(0, 6),
     [data.approvals, approvalState],
@@ -72,7 +75,7 @@ export function AutomationOverview({ data }: { data: WorkspaceData }) {
     <div className="space-y-4">
       <Surface className="overflow-hidden">
         <div className="grid grid-cols-2 gap-y-3 py-3 sm:grid-cols-3 xl:grid-cols-6">
-          <CompactStat label="Automation status" value="Limited live" note="controlled intents only" tone="success" />
+          <CompactStat label="Automation status" value="Limited live" note={`${controlledCount} controlled · ${approvalCount} approval · ${humanOnlyCount} human-only`} tone="success" />
           <CompactStat label="Actions · 24h" value={String(data.summary.actionsLast24h)} note="mock executions" />
           <CompactStat label="Approval rate" value={`${Math.round(data.summary.approvalRate * 100)}%`} note="decided approvals" />
           <CompactStat label="Blocked decisions" value={String(data.summary.blockedDecisions)} note="policy / prerequisite" tone="warning" />
