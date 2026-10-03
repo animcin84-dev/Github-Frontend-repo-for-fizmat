@@ -376,3 +376,289 @@ export interface QualityRecommendation {
   relatedKnowledgeId?: string;
   relatedIssueId?: string;
 }
+
+export type ActionRisk =
+  | "read_only"
+  | "low_risk_reversible"
+  | "customer_impacting_reversible"
+  | "financial"
+  | "security_sensitive"
+  | "irreversible";
+
+export type ExecutionStatus =
+  | "pending"
+  | "executing"
+  | "succeeded"
+  | "failed"
+  | "rolled_back"
+  | "cancelled";
+
+export type ExecutionFailureType =
+  | "timeout"
+  | "provider_error"
+  | "validation_error"
+  | "conflict"
+  | "partial_success";
+
+export interface ActionDefinition {
+  id: string;
+  label: string;
+  description: string;
+  provider: string;
+  connectorId: string;
+  inputSchema: string[];
+  risk: ActionRisk;
+  reversible: boolean;
+  requiresIdentity: boolean;
+  requiresConfirmation: boolean;
+  requiresHumanApproval: boolean;
+  timeoutMs: number;
+  retryPolicy: string;
+  status: "available" | "degraded" | "paused";
+}
+
+export interface PolicyVersion {
+  id: string;
+  label: string;
+  status: "current" | "draft" | "previous";
+  effectiveFrom: string;
+  owner: string;
+  changes: string[];
+  amountLimit?: number;
+  humanApprovalThreshold?: number;
+}
+
+export interface AutomationPolicy {
+  id: string;
+  actionId: string;
+  intent: string;
+  scope: string;
+  requiredIdentity: "none" | "authenticated" | "verified";
+  knowledgeRequirements: {
+    authoritative: boolean;
+    fresh: boolean;
+    noConflicts: boolean;
+  };
+  amountLimit?: number;
+  customerConfirmation: boolean;
+  humanApproval: "never" | "above_limit" | "always";
+  allowedChannels: Channel[];
+  allowedRegions: string[];
+  blockedConditions: string[];
+  versions: PolicyVersion[];
+}
+
+export type ProcedureStepType =
+  | "understand"
+  | "ask_customer"
+  | "retrieve_data"
+  | "validate"
+  | "branch"
+  | "policy_check"
+  | "request_confirmation"
+  | "human_approval"
+  | "execute_action"
+  | "verify_result"
+  | "send_response"
+  | "escalate";
+
+export interface ProcedureStep {
+  id: string;
+  type: ProcedureStepType;
+  title: string;
+  instruction: string;
+  deterministicCondition?: string;
+}
+
+export interface AutomationProcedure {
+  id: string;
+  name: string;
+  intent: string;
+  trigger: string;
+  status: "draft" | "shadow" | "limited" | "active" | "paused";
+  steps: ProcedureStep[];
+  policyIds: string[];
+  actionIds: string[];
+  requiredData: string[];
+  evaluation: {
+    passRate: number;
+    sampleSize: number;
+    lastRunAt: string;
+  };
+  rolloutId: string;
+}
+
+export interface ExecutionRecord {
+  id: string;
+  actionId: string;
+  conversationId: string;
+  idempotencyKey: string;
+  previousAttemptId?: string;
+  status: ExecutionStatus;
+  requestedAt: string;
+  completedAt?: string;
+  result?: string;
+  failureType?: ExecutionFailureType;
+  providerReference?: string;
+}
+
+export interface ApprovalRequest {
+  id: string;
+  conversationId: string;
+  customerName: string;
+  actionId: string;
+  policyVersion: string;
+  amount?: number;
+  identity: "verified" | "authenticated" | "unverified";
+  knowledgeState: KnowledgeHealthState;
+  confirmation: "received" | "missing" | "not_required";
+  reason: string;
+  evidenceIds: string[];
+  affectedEntity: string;
+  reversibility: "available" | "unavailable";
+  expectedExternalChange: string;
+  status: "pending" | "approved" | "rejected";
+  requestedAt: string;
+  approver?: string;
+}
+
+export interface RolloutConfig {
+  id: string;
+  intent: string;
+  mode: "shadow" | "canary" | "limited" | "expanded" | "full" | "paused";
+  percentage: 0 | 5 | 25 | 50 | 100;
+  eligiblePopulation: string[];
+  excluded: string[];
+  guardrails: {
+    executed: number;
+    failed: number;
+    humanTakeoverAfterAction: number;
+    reopened: number;
+    customerCorrection: number;
+    policyBlocks: number;
+    rollbackRate: number;
+  };
+  baseline: {
+    failureRate: number;
+    reopenRate: number;
+  };
+  autoPauseConditions: Array<{
+    id: string;
+    label: string;
+    threshold?: string;
+    enabled: boolean;
+  }>;
+}
+
+export interface AutomationDecision {
+  id: string;
+  conversationId: string;
+  intent: string;
+  actionId: string;
+  policyDecision: PolicyDecision;
+  policyVersion: string;
+  knowledgeSnapshot: string;
+  evaluationVersion: string;
+  timestamp: string;
+}
+
+export interface AutomationAuditEvent {
+  id: string;
+  timestamp: string;
+  conversationId: string;
+  intent: string;
+  actionId: string;
+  policyVersion: string;
+  knowledgeSnapshot: string;
+  evaluationVersion: string;
+  decision: PolicyDecision["decision"];
+  approver?: string;
+  executionId?: string;
+  result: "not_executed" | ExecutionStatus;
+  reason: string;
+  lifecycle: Array<{
+    state:
+      | "requested"
+      | "policy_evaluated"
+      | "confirmation_received"
+      | "human_approved"
+      | "action_executed"
+      | "result_verified"
+      | "blocked"
+      | "failed"
+      | "rolled_back";
+    at: string;
+    detail: string;
+  }>;
+}
+
+export interface ConnectorHealth {
+  id: string;
+  label: string;
+  status: "healthy" | "degraded" | "down";
+  readOnlyAvailable: boolean;
+  affectedActions: string[];
+  lastCheckedAt: string;
+  note: string;
+}
+
+export interface AutomationIncidentGate {
+  id: string;
+  intent: string;
+  issueId: string;
+  status: "paused" | "warning";
+  reason: string;
+  affectedActions: string[];
+}
+
+export interface ReadinessExplanation {
+  intent: string;
+  currentMode: "controlled_automation" | "copilot_only" | "human_only";
+  rolloutPercent: number;
+  lastDecision: string;
+  dimensions: Array<{
+    label:
+      | "Knowledge"
+      | "Identity"
+      | "Policy"
+      | "Historical evaluations"
+      | "Failure history"
+      | "Action reversibility"
+      | "Customer confirmation"
+      | "External system health";
+    state: "pass" | "warning" | "block";
+    detail: string;
+    href?: string;
+  }>;
+}
+
+export interface PolicyReplay {
+  policyId: string;
+  casesTested: number;
+  previousEligible: number;
+  proposedEligible: number;
+  newlyEligible: number;
+  unsafeRegressions: number;
+  recommendation: "review_required" | "safe_to_continue";
+}
+
+export interface ProcedureSimulation {
+  procedureId: string;
+  conversationsReplayed: number;
+  completedSafely: number;
+  humanApproval: number;
+  escalated: number;
+  blocked: number;
+  executionFailure: number;
+  regressions: Array<{
+    caseId: string;
+    from: string;
+    to: string;
+    severity: "high" | "medium";
+  }>;
+  sampleTrace: Array<{
+    state: string;
+    detail: string;
+  }>;
+}
+
