@@ -169,9 +169,16 @@ describe("database idempotency and synchronization", () => {
       syncQuery: "label:support newer_than:7d",
     });
     expect(updated).toMatchObject({ backfillDays: 7, syncQuery: "label:support newer_than:7d" });
-    const status = await getGmailIntegrationStatus();
-    expect(status.backfillDays).toBe(7);
-    expect(status.syncQuery).toBe("label:support newer_than:7d");
+    const previousMode = process.env.SUPPORT_DATA_MODE;
+    process.env.SUPPORT_DATA_MODE = "database";
+    try {
+      const status = await getGmailIntegrationStatus();
+      expect(status.backfillDays).toBe(7);
+      expect(status.syncQuery).toBe("label:support newer_than:7d");
+    } finally {
+      if (previousMode === undefined) delete process.env.SUPPORT_DATA_MODE;
+      else process.env.SUPPORT_DATA_MODE = previousMode;
+    }
   });
 
   test("renewing Gmail watch persists expiration without skipping the sync history cursor", async () => {
