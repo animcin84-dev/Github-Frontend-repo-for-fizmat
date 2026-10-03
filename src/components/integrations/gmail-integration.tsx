@@ -9,6 +9,7 @@ import type { IntegrationStatusDTO } from "@/server/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ErrorState, LoadingState } from "@/components/ui/page-state";
+import { WhatsAppIntegration } from "@/components/integrations/whatsapp-integration";
 import { Surface } from "@/components/ui/surface";
 
 async function json<T>(response: Response): Promise<T> {
@@ -91,7 +92,7 @@ export function GmailIntegration() {
       <div className="si-page-header">
         <div>
           <h1 className="si-page-title">Integrations</h1>
-          <p className="si-page-subtitle">Operational connector state for the real support data plane. Phase F2 intentionally contains one connector: Gmail.</p>
+          <p className="si-page-subtitle">Gmail connection and WhatsApp setup for the unified support Inbox.</p>
         </div>
         <Badge tone={data.mode === "database" ? "success" : "warning"}>{data.mode === "database" ? "REAL DATA MODE" : "MOCK MODE"}</Badge>
       </div>
@@ -178,6 +179,8 @@ export function GmailIntegration() {
           </div>
         ) : null}
       </Surface>
+
+      <WhatsAppIntegration />
 
       <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-[var(--muted-foreground)]"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />Refresh tokens are server-only and encrypted at rest by the application. Tokens, OAuth codes and full email bodies are not surfaced here.</div>
     </div>
