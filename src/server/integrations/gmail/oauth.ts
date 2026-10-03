@@ -136,3 +136,20 @@ export async function revokeGoogleToken(refreshToken: string) {
   });
   return response.ok;
 }
+
+export async function fetchGmailProfileWithAccessToken(accessToken: string) {
+  const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
+    headers: { authorization: `Bearer ${accessToken}`, accept: "application/json" },
+    cache: "no-store",
+  });
+  const json = await response.json() as { emailAddress?: string; historyId?: string; messagesTotal?: number; threadsTotal?: number; error?: { message?: string } };
+  if (!response.ok || !json.emailAddress || !json.historyId) {
+    throw new SupportError("gmail_unavailable", json.error?.message ?? "Could not read Gmail profile", { status: response.status || 502 });
+  }
+  return {
+    emailAddress: json.emailAddress,
+    historyId: json.historyId,
+    messagesTotal: json.messagesTotal,
+    threadsTotal: json.threadsTotal,
+  };
+}

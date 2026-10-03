@@ -96,7 +96,7 @@ const blockedSecurityPolicy: PolicyDecision[] = [
 ];
 
 function priorityFor(index: number): Priority {
-  return conversations[index]?.priority ?? "medium";
+  return (conversations[index]?.priority ?? "medium") as Priority;
 }
 
 function buildDetail(item: ConversationListItem, index: number): ConversationDetail {

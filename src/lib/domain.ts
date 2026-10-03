@@ -1,4 +1,5 @@
 export type Priority = "low" | "medium" | "high" | "critical";
+export type ConversationPriority = Priority | "untriaged";
 export type ConversationStatus =
   | "new"
   | "open"
@@ -28,9 +29,13 @@ export interface ConversationListItem {
   preview: string;
   channel: Channel;
   status: ConversationStatus;
-  priority: Priority;
+  priority: ConversationPriority;
   category: string;
   unread: boolean;
+  source?: "mock" | "gmail";
+  providerLabel?: string;
+  integrationAccountId?: string;
+  analysisState?: "simulated" | "pending";
   aiState: "unanalyzed" | "draft_ready" | "needs_review" | "human_only" | "auto_eligible";
   slaRisk: "none" | "warning" | "breach";
   updatedAt: string;
@@ -75,9 +80,15 @@ export interface ConversationDetail {
   customer: Customer;
   subject: string;
   status: ConversationStatus;
-  priority: Priority;
+  priority: ConversationPriority;
   category: string;
   subcategory?: string;
+  source?: "mock" | "gmail";
+  providerLabel?: string;
+  integrationAccountId?: string;
+  providerConversationId?: string;
+  analysisState?: "simulated" | "pending";
+  replyMode?: "mock" | "gmail_real";
   summary: string;
   triageSignals: TriageSignal[];
   messages: Array<{
@@ -85,6 +96,12 @@ export interface ConversationDetail {
     author: "customer" | "agent" | "system" | "ai";
     body: string;
     createdAt: string;
+    direction?: "inbound" | "outbound";
+    from?: string;
+    to?: string[];
+    cc?: string[];
+    providerMessageId?: string;
+    attachments?: Array<{ filename: string; mimeType: string; size: number }>;
     deliveryState?: "sent" | "delivered" | "failed";
   }>;
   evidence: EvidenceSource[];
