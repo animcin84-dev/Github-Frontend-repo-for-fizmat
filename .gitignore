@@ -5,3 +5,8 @@ out
 !.env.example
 .DS_Store
 *.log
+
+credentials.json
+client_secret*.json
+refresh-token*.json
+*.pem
