@@ -54,8 +54,9 @@ test.describe("theme persistence", () => {
   });
 
   test("toggle icon and aria-label stay synchronized after reload", async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem("si-theme", "light"));
     await page.goto("/overview");
+    await page.evaluate(() => localStorage.setItem("si-theme", "light"));
+    await page.reload();
     await page.getByRole("button", { name: "Use dark theme" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(page.getByRole("button", { name: "Use light theme" })).toBeVisible();
