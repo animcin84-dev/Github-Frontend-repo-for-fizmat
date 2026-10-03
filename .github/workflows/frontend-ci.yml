@@ -2,7 +2,7 @@ name: frontend-ci
 
 on:
   push:
-    branches: [main, "feat/phase-d-ai-quality"]
+    branches: [main, "feat/phase-d-ai-quality", "feat/phase-e-controlled-automation"]
   pull_request:
     branches: [main]
 
