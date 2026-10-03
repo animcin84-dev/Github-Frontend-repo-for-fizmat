@@ -21,6 +21,7 @@ import {
   markOutboundSent,
 } from "@/server/repositories/sync";
 import { supportDataMode } from "@/server/services/integration-service";
+import { serverErrorLog, serverLog } from "@/server/logging";
 
 function status(value: string): ConversationStatus {
   return ["new", "open", "waiting_customer", "waiting_agent", "escalated", "resolved"].includes(value)
@@ -223,6 +224,7 @@ export async function sendManualGmailReply(input: {
     }
 
     await markOutboundSent(operation.id, { providerMessageId: sent.id, providerThreadId: sent.threadId });
+    serverLog("gmail_reply_sent", { integrationId: context.integration.id, conversationId: context.conversation.id, operationId: operation.id, providerMessageId: sent.id, providerThreadId: sent.threadId, attempt: claim.attempt });
     return {
       operationId: operation.id,
       status: "sent" as const,
@@ -233,6 +235,7 @@ export async function sendManualGmailReply(input: {
   } catch (error) {
     const normalized = toSupportError(error);
     await markOutboundFailed(operation.id, { errorCode: normalized.code === "unknown" ? "send_failed" : normalized.code, errorMessage: normalized.message });
+    serverErrorLog("gmail_reply_failed", { integrationId: context.integration.id, conversationId: context.conversation.id, operationId: operation.id, errorCategory: normalized.code === "unknown" ? "send_failed" : normalized.code, attempt: claim.attempt });
     throw new SupportError("send_failed", "Gmail reply was not confirmed as sent. Retry uses the same idempotency key and checks Gmail before resending.", {
       status: 502,
       retryable: true,

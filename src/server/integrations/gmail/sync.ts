@@ -2,6 +2,7 @@ import { GmailHttpError, GmailRestClient } from "@/server/integrations/gmail/gma
 import { normalizeGmailMessage } from "@/server/integrations/gmail/parser";
 import type { GmailClient } from "@/server/integrations/gmail/types";
 import { SupportError, toSupportError } from "@/server/errors";
+import { serverErrorLog, serverLog } from "@/server/logging";
 import {
   getIntegrationById,
   updateIntegrationCursor,
@@ -60,6 +61,8 @@ export async function runFullGmailSync(input: {
     historyIdBefore: account.lastHistoryId,
   });
   const counts: SyncCounts = { messagesFound: 0, messagesInserted: 0, messagesSkipped: 0, threadsFound: 0 };
+  const startedAt = Date.now();
+  serverLog("gmail_sync_started", { integrationId: account.id, syncRunId: run.id, kind: input.kind ?? "initial" });
 
   try {
     await updateIntegrationSyncState(account.id, "syncing");
@@ -89,6 +92,7 @@ export async function runFullGmailSync(input: {
       ...counts,
       historyIdAfter: profile.historyId,
     });
+    serverLog("gmail_sync_completed", { integrationId: account.id, syncRunId: run.id, kind: input.kind ?? "initial", messagesFound: counts.messagesFound, messagesInserted: counts.messagesInserted, messagesSkipped: counts.messagesSkipped, threadsFound: counts.threadsFound, latencyMs: Date.now() - startedAt });
     return { runId: run.id, ...counts, historyIdAfter: profile.historyId, recovered: input.kind === "recovery" };
   } catch (error) {
     const normalized = toSupportError(error);
@@ -99,6 +103,7 @@ export async function runFullGmailSync(input: {
       errorCode: normalized.code,
       errorMessage: normalized.message,
     });
+    serverErrorLog("gmail_sync_failed", { integrationId: account.id, syncRunId: run.id, kind: input.kind ?? "initial", errorCategory: normalized.code, latencyMs: Date.now() - startedAt });
     throw normalized;
   } finally {
     await releaseSyncLock(account.id);
@@ -125,7 +130,9 @@ export async function runIncrementalGmailSync(input: {
     historyIdBefore: account.lastHistoryId,
   });
   const counts: SyncCounts = { messagesFound: 0, messagesInserted: 0, messagesSkipped: 0, threadsFound: 0 };
+  const startedAt = Date.now();
   let recoveryRequired = false;
+  serverLog("gmail_sync_started", { integrationId: account.id, syncRunId: run.id, kind: input.kind ?? "incremental" });
 
   try {
     await updateIntegrationSyncState(account.id, "syncing");
@@ -151,6 +158,7 @@ export async function runIncrementalGmailSync(input: {
       ...counts,
       historyIdAfter,
     });
+    serverLog("gmail_sync_completed", { integrationId: account.id, syncRunId: run.id, kind: input.kind ?? "incremental", messagesFound: counts.messagesFound, messagesInserted: counts.messagesInserted, messagesSkipped: counts.messagesSkipped, latencyMs: Date.now() - startedAt });
     return { runId: run.id, ...counts, historyIdAfter, recovered: false };
   } catch (error) {
     if (error instanceof GmailHttpError && error.httpStatus === 404) {
@@ -162,6 +170,7 @@ export async function runIncrementalGmailSync(input: {
         errorCode: "history_expired",
         errorMessage: "Gmail history cursor expired; controlled recent resynchronization required",
       });
+      serverErrorLog("gmail_history_expired", { integrationId: account.id, syncRunId: run.id, errorCategory: "history_expired", latencyMs: Date.now() - startedAt });
     } else {
       const normalized = toSupportError(error);
       await updateIntegrationSyncState(account.id, "error", normalized.code);
@@ -171,6 +180,7 @@ export async function runIncrementalGmailSync(input: {
         errorCode: normalized.code,
         errorMessage: normalized.message,
       });
+      serverErrorLog("gmail_sync_failed", { integrationId: account.id, syncRunId: run.id, kind: input.kind ?? "incremental", errorCategory: normalized.code, latencyMs: Date.now() - startedAt });
       throw normalized;
     }
   } finally {
