@@ -32,7 +32,7 @@ export interface ConversationListItem {
   priority: ConversationPriority;
   category: string;
   unread: boolean;
-  source?: "mock" | "gmail";
+  source?: "mock" | "gmail" | "whatsapp";
   providerLabel?: string;
   integrationAccountId?: string;
   analysisState?: "simulated" | "pending";
@@ -83,12 +83,12 @@ export interface ConversationDetail {
   priority: ConversationPriority;
   category: string;
   subcategory?: string;
-  source?: "mock" | "gmail";
+  source?: "mock" | "gmail" | "whatsapp";
   providerLabel?: string;
   integrationAccountId?: string;
   providerConversationId?: string;
   analysisState?: "simulated" | "pending";
-  replyMode?: "mock" | "gmail_real";
+  replyMode?: "mock" | "gmail_real" | "unavailable";
   summary: string;
   triageSignals: TriageSignal[];
   messages: Array<{

@@ -1,3 +1,4 @@
+import type { NormalizedAddress } from "@/server/integrations/types";
 import {
   bigint,
   boolean,
@@ -17,7 +18,7 @@ export const integrationAccounts = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     provider: text("provider").notNull(),
     providerAccountId: text("provider_account_id").notNull(),
-    emailAddress: text("email_address").notNull(),
+    emailAddress: text("email_address"),
     status: text("status").notNull().default("connected"),
     connectedAt: timestamp("connected_at", { withTimezone: true }).defaultNow().notNull(),
     disconnectedAt: timestamp("disconnected_at", { withTimezone: true }),
@@ -93,8 +94,8 @@ export const messages = pgTable(
     direction: text("direction").notNull(),
     fromAddress: text("from_address"),
     fromName: text("from_name"),
-    toRecipients: jsonb("to_recipients").$type<Array<{ name?: string; email: string }>>().notNull(),
-    ccRecipients: jsonb("cc_recipients").$type<Array<{ name?: string; email: string }>>().notNull(),
+    toRecipients: jsonb("to_recipients").$type<NormalizedAddress[]>().notNull(),
+    ccRecipients: jsonb("cc_recipients").$type<NormalizedAddress[]>().notNull(),
     subject: text("subject").notNull().default("(no subject)"),
     textBody: text("text_body").notNull().default(""),
     displayTextBody: text("display_text_body").notNull().default(""),

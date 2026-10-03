@@ -6,6 +6,7 @@ import { runIncrementalGmailSync } from "@/server/integrations/gmail/sync";
 import {
   getGmailIntegrationByEmail,
   getIntegrationById,
+  asGmailIntegration,
   updateWatchState,
 } from "@/server/repositories/integrations";
 import {
@@ -14,7 +15,7 @@ import {
 } from "@/server/repositories/sync";
 
 export async function renewGmailWatch(integrationId: string, clientOverride?: GmailClient) {
-  const account = await getIntegrationById(integrationId);
+  const account = asGmailIntegration(await getIntegrationById(integrationId));
   if (!account || account.status !== "connected") throw new SupportError("not_found", "Connected Gmail integration was not found", { status: 404 });
   const topic = process.env.GMAIL_PUBSUB_TOPIC;
   if (!topic) throw new SupportError("configuration_missing", "GMAIL_PUBSUB_TOPIC is not configured", { status: 400 });

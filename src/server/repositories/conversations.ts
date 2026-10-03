@@ -1,3 +1,4 @@
+import { SupportError } from "@/server/errors";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import { isDatabaseConversationId } from "@/lib/conversation-selection";
@@ -8,73 +9,70 @@ import {
   messages,
   participants,
 } from "@/server/db/schema";
-import type { NormalizedAddress, NormalizedMessage } from "@/server/integrations/gmail/types";
+import { addressValue, type NormalizedAddress, type NormalizedMessage } from "@/server/integrations/types";
 import type { IntegrationAccountRow } from "@/server/repositories/integrations";
 
-function customerAddress(message: NormalizedMessage, mailboxEmail: string): NormalizedAddress | undefined {
+function customerAddress(message: NormalizedMessage, account: IntegrationAccountRow): NormalizedAddress | undefined {
   if (message.direction === "inbound") return message.sender;
-  return message.recipients.find((item) => item.email.toLowerCase() !== mailboxEmail.toLowerCase());
+  return message.recipients.find((item) => addressValue(item).toLowerCase() !== (account.emailAddress ?? account.providerAccountId).toLowerCase());
 }
 
 export async function persistNormalizedMessage(account: IntegrationAccountRow, normalized: NormalizedMessage) {
+  if (account.provider !== normalized.provider) {
+    throw new SupportError("validation_failed", "Message provider does not match the integration account", { status: 422 });
+  }
   return getDb().transaction(async (tx) => {
-    const customer = customerAddress(normalized, account.emailAddress);
+    const customer = customerAddress(normalized, account);
     let customerParticipantId: string | null = null;
 
-    if (customer?.email) {
-      const providerIdentity = `gmail:${customer.email.toLowerCase()}`;
+    if (customer) {
+      const email = customer.email?.toLowerCase() ?? null;
+      const phone = customer.phone ?? null;
+      const name = customer.name ?? addressValue(customer);
+      const providerIdentity = normalized.provider === "gmail"
+        ? `gmail:${email}`
+        : `whatsapp:${account.providerAccountId}:${phone}`;
       const [participant] = await tx
         .insert(participants)
         .values({
-          name: customer.name ?? customer.email,
-          email: customer.email.toLowerCase(),
+          name, email, phone,
           providerIdentity,
         })
         .onConflictDoUpdate({
           target: participants.providerIdentity,
-          set: { name: customer.name ?? customer.email, email: customer.email.toLowerCase() },
+          set: { name, email, phone },
         })
         .returning();
       customerParticipantId = participant.id;
     }
 
-    const [existingConversation] = await tx
-      .select()
-      .from(conversations)
-      .where(and(
-        eq(conversations.integrationAccountId, account.id),
-        eq(conversations.providerConversationId, normalized.providerConversationId),
-      ))
-      .limit(1);
-
-    let conversation = existingConversation;
-    if (!conversation) {
-      [conversation] = await tx
-        .insert(conversations)
-        .values({
-          integrationAccountId: account.id,
-          provider: "gmail",
-          providerConversationId: normalized.providerConversationId,
-          subject: normalized.subject,
-          status: "new",
-          customerParticipantId,
-          firstMessageAt: normalized.occurredAt,
-          latestMessageAt: normalized.occurredAt,
-          unread: normalized.unread,
-        })
-        .returning();
-    }
+    // The upsert locks this conversation while the message and timestamps are updated.
+    // Concurrent webhook retries cannot race the initial conversation insert.
+    const [conversation] = await tx.insert(conversations).values({
+      integrationAccountId: account.id,
+      provider: normalized.provider,
+      providerConversationId: normalized.providerConversationId,
+      subject: normalized.subject,
+      status: "new",
+      customerParticipantId,
+      firstMessageAt: normalized.occurredAt,
+      latestMessageAt: normalized.occurredAt,
+      unread: normalized.unread,
+    }).onConflictDoUpdate({
+      target: [conversations.integrationAccountId, conversations.providerConversationId],
+      set: { provider: normalized.provider },
+    }).returning();
 
     const [inserted] = await tx
       .insert(messages)
       .values({
         integrationAccountId: account.id,
         conversationId: conversation.id,
-        provider: "gmail",
+        provider: normalized.provider,
         providerMessageId: normalized.providerMessageId,
         providerThreadId: normalized.providerConversationId,
         direction: normalized.direction,
-        fromAddress: normalized.sender?.email ?? null,
+        fromAddress: normalized.sender ? addressValue(normalized.sender) : null,
         fromName: normalized.sender?.name ?? null,
         toRecipients: normalized.recipients,
         ccRecipients: normalized.cc,

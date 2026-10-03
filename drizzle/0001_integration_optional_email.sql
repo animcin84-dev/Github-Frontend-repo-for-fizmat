@@ -1,0 +1,1 @@
+ALTER TABLE "integration_accounts" ALTER COLUMN "email_address" DROP NOT NULL;

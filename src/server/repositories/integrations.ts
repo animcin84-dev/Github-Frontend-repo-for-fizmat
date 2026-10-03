@@ -4,13 +4,38 @@ import { conversations, integrationAccounts, messages, syncRuns } from "@/server
 
 export type IntegrationAccountRow = typeof integrationAccounts.$inferSelect;
 
+export type GmailIntegrationAccountRow = IntegrationAccountRow & { provider: "gmail"; emailAddress: string };
+
+export function asGmailIntegration(row: IntegrationAccountRow | undefined): GmailIntegrationAccountRow | undefined {
+  return row?.provider === "gmail" && row.emailAddress ? { ...row, provider: "gmail", emailAddress: row.emailAddress } : undefined;
+}
+
+export async function getIntegrationByProviderAccount(provider: string, providerAccountId: string) {
+  const [row] = await getDb().select().from(integrationAccounts).where(and(
+    eq(integrationAccounts.provider, provider), eq(integrationAccounts.providerAccountId, providerAccountId),
+  )).limit(1);
+  return row;
+}
+
+export async function recordWhatsAppInboundAccount(phoneNumberId: string) {
+  const now = new Date();
+  const [row] = await getDb().insert(integrationAccounts).values({
+    provider: "whatsapp", providerAccountId: phoneNumberId, emailAddress: null,
+    status: "receiving", grantedScopes: [], lastSyncedAt: now,
+  }).onConflictDoUpdate({
+    target: [integrationAccounts.provider, integrationAccounts.providerAccountId],
+    set: { status: "receiving", lastSyncedAt: now },
+  }).returning();
+  return row;
+}
+
 export async function getActiveGmailIntegration() {
   const [row] = await getDb()
     .select()
     .from(integrationAccounts)
     .where(and(eq(integrationAccounts.provider, "gmail"), eq(integrationAccounts.status, "connected")))
     .limit(1);
-  return row;
+  return asGmailIntegration(row);
 }
 
 export async function getGmailIntegrationByEmail(email: string) {
@@ -19,7 +44,7 @@ export async function getGmailIntegrationByEmail(email: string) {
     .from(integrationAccounts)
     .where(and(eq(integrationAccounts.provider, "gmail"), eq(integrationAccounts.emailAddress, email.toLowerCase())))
     .limit(1);
-  return row;
+  return asGmailIntegration(row);
 }
 
 export async function getIntegrationById(id: string) {

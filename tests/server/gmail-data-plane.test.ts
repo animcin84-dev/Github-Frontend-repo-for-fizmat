@@ -34,7 +34,7 @@ async function seedIntegration(lastHistoryId: string | null = null) {
     syncQuery: "in:inbox newer_than:30d",
     syncState: "idle",
   }).returning();
-  return row;
+  return { ...row, emailAddress: "support@example.test" };
 }
 
 describe("database idempotency and synchronization", () => {

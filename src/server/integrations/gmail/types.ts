@@ -4,40 +4,15 @@ export const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.send",
 ] as const;
 
-export type MessageDirection = "inbound" | "outbound";
-
-export interface NormalizedAddress {
-  name?: string;
-  email: string;
-}
-
-export interface NormalizedAttachment {
-  providerAttachmentId?: string | null;
-  filename: string;
-  mimeType: string;
-  size: number;
-}
-
-export interface NormalizedMessage {
+import type { EmailAddress, NormalizedMessage as ProviderMessage } from "@/server/integrations/types";
+export type { MessageDirection, NormalizedAttachment } from "@/server/integrations/types";
+export type NormalizedAddress = EmailAddress;
+export type NormalizedMessage = ProviderMessage & {
   provider: "gmail";
-  providerMessageId: string;
-  providerConversationId: string;
-  sender?: NormalizedAddress;
-  recipients: NormalizedAddress[];
-  cc: NormalizedAddress[];
-  subject: string;
-  text: string;
-  displayText: string;
-  html?: string | null;
-  attachments: NormalizedAttachment[];
-  messageIdHeader?: string | null;
-  inReplyTo?: string | null;
-  references: string[];
-  occurredAt: Date;
-  direction: MessageDirection;
-  unread: boolean;
-  untrustedCustomerContent: true;
-}
+  sender?: EmailAddress;
+  recipients: EmailAddress[];
+  cc: EmailAddress[];
+};
 
 export interface GmailProfile {
   emailAddress: string;

@@ -5,6 +5,8 @@ import { SupportError, toSupportError } from "@/server/errors";
 import { serverErrorLog, serverLog } from "@/server/logging";
 import {
   getIntegrationById,
+  asGmailIntegration,
+  type GmailIntegrationAccountRow,
   updateIntegrationCursor,
   updateIntegrationSyncState,
 } from "@/server/repositories/integrations";
@@ -23,12 +25,12 @@ interface SyncCounts {
   threadsFound: number;
 }
 
-function clientFor(account: NonNullable<Awaited<ReturnType<typeof getIntegrationById>>>, override?: GmailClient) {
+function clientFor(account: GmailIntegrationAccountRow, override?: GmailClient) {
   return override ?? new GmailRestClient(account);
 }
 
 async function persistRawMessage(
-  account: NonNullable<Awaited<ReturnType<typeof getIntegrationById>>>,
+  account: GmailIntegrationAccountRow,
   client: GmailClient,
   messageId: string,
   counts: SyncCounts,
@@ -59,7 +61,7 @@ export async function runFullGmailSync(input: {
   kind?: "initial" | "manual" | "recovery";
   client?: GmailClient;
 }) {
-  const account = await getIntegrationById(input.integrationId);
+  const account = asGmailIntegration(await getIntegrationById(input.integrationId));
   if (!account || account.status !== "connected") throw new SupportError("not_found", "Connected Gmail integration was not found", { status: 404 });
 
   const owner = `full:${crypto.randomUUID()}`;
@@ -128,7 +130,7 @@ export async function runIncrementalGmailSync(input: {
   kind?: "incremental" | "manual";
   client?: GmailClient;
 }) {
-  const account = await getIntegrationById(input.integrationId);
+  const account = asGmailIntegration(await getIntegrationById(input.integrationId));
   if (!account || account.status !== "connected") throw new SupportError("not_found", "Connected Gmail integration was not found", { status: 404 });
   if (!account.lastHistoryId) return runFullGmailSync({ integrationId: account.id, kind: "recovery", client: input.client });
 

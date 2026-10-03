@@ -1,3 +1,4 @@
+import { addressValue } from "@/server/integrations/types";
 import type { ConversationDetail, ConversationListItem, ConversationStatus } from "@/lib/domain";
 import { getConversationDetail as getMockDetail, getConversationList as getMockList } from "@/lib/mocks/service";
 import { SupportError, toSupportError } from "@/server/errors";
@@ -34,16 +35,16 @@ export async function getConversationListForCurrentMode(): Promise<ConversationL
   const rows = await listConversationRows();
   return Promise.all(rows.map(async ({ conversation, customer, integration }) => ({
     id: conversation.id,
-    customer: { id: customer?.id ?? `gmail:${conversation.id}`, name: customer?.name ?? customer?.email ?? "Unknown sender" },
+    customer: { id: customer?.id ?? `${conversation.provider}:${conversation.id}`, name: customer?.name ?? customer?.email ?? customer?.phone ?? "Unknown sender" },
     subject: conversation.subject,
     preview: (await getLatestMessagePreview(conversation.id)).slice(0, 180),
-    channel: "email" as const,
+    channel: conversation.provider === "whatsapp" ? "whatsapp" as const : "email" as const,
     status: status(conversation.status),
     priority: "untriaged" as const,
     category: "Untriaged",
     unread: conversation.unread,
-    source: "gmail" as const,
-    providerLabel: "Gmail",
+    source: conversation.provider === "whatsapp" ? "whatsapp" as const : "gmail" as const,
+    providerLabel: conversation.provider === "whatsapp" ? "WhatsApp" : "Gmail",
     integrationAccountId: integration.id,
     analysisState: "pending" as const,
     aiState: "unanalyzed" as const,
@@ -67,23 +68,24 @@ export async function getConversationDetailForCurrentMode(id: string): Promise<C
   return {
     id: context.conversation.id,
     customer: {
-      id: context.customer?.id ?? `gmail:${context.conversation.id}`,
-      name: context.customer?.name ?? context.customer?.email ?? "Unknown sender",
+      id: context.customer?.id ?? `${context.conversation.provider}:${context.conversation.id}`,
+      name: context.customer?.name ?? context.customer?.email ?? context.customer?.phone ?? "Unknown sender",
       email: context.customer?.email ?? undefined,
+      phone: context.customer?.phone ?? undefined,
       priorConversationCount: 0,
-      tags: ["gmail"],
+      tags: [context.conversation.provider],
     },
     subject: context.conversation.subject,
     status: status(context.conversation.status),
     priority: "untriaged",
     category: "Untriaged",
-    source: "gmail",
-    providerLabel: "Gmail",
+    source: context.conversation.provider === "whatsapp" ? "whatsapp" : "gmail",
+    providerLabel: context.conversation.provider === "whatsapp" ? "WhatsApp" : "Gmail",
     integrationAccountId: context.integration.id,
     providerConversationId: context.conversation.providerConversationId,
     analysisState: "pending",
-    replyMode: "gmail_real",
-    summary: "AI analysis pending. This real Gmail conversation has not been classified or grounded yet.",
+    replyMode: context.conversation.provider === "gmail" ? "gmail_real" : "unavailable",
+    summary: "AI analysis pending. This real provider conversation has not been classified or grounded yet.",
     triageSignals: [],
     messages: rows.map(({ message, attachments }) => ({
       id: message.id,
@@ -92,8 +94,8 @@ export async function getConversationDetailForCurrentMode(id: string): Promise<C
       createdAt: (message.sentAt ?? message.receivedAt ?? message.createdAt).toISOString(),
       direction: message.direction as "inbound" | "outbound",
       from: message.fromAddress ?? undefined,
-      to: message.toRecipients.map((item) => item.email),
-      cc: message.ccRecipients.map((item) => item.email),
+      to: message.toRecipients.map(addressValue),
+      cc: message.ccRecipients.map(addressValue),
       providerMessageId: message.providerMessageId,
       attachments: attachments.map((attachment) => ({
         filename: attachment.filename,
@@ -115,9 +117,13 @@ export async function sendManualGmailReply(input: {
   client?: GmailClient;
 }) {
   const context = await getConversationContext(input.conversationId);
-  if (!context || context.integration.status !== "connected") {
+  if (context && context.integration.provider !== "gmail") {
+    throw new SupportError("validation_failed", "Manual WhatsApp replies are not enabled yet", { status: 409 });
+  }
+  if (!context || !context.integration.emailAddress || context.integration.status !== "connected") {
     throw new SupportError("not_found", "Connected Gmail conversation was not found", { status: 404 });
   }
+  const mailboxEmail = context.integration.emailAddress;
   const recipientEmail = context.customer?.email;
   if (!recipientEmail) throw new SupportError("validation_failed", "Conversation has no customer email recipient", { status: 422 });
 
@@ -164,7 +170,7 @@ export async function sendManualGmailReply(input: {
 
   const lastMessage = await getLatestConversationMessage(context.conversation.id);
   const mime = await buildReplyMime({
-    mailboxEmail: context.integration.emailAddress,
+    mailboxEmail,
     recipientEmail,
     subject: context.conversation.subject,
     text: input.text,
@@ -180,7 +186,7 @@ export async function sendManualGmailReply(input: {
       const existing = await client.searchMessages(`rfc822msgid:${mime.messageIdHeader}`);
       if (existing[0]) {
         const rawExisting = await client.getMessage(existing[0].id);
-        const normalizedExisting = await normalizeGmailMessage(rawExisting, context.integration.emailAddress);
+        const normalizedExisting = await normalizeGmailMessage(rawExisting, mailboxEmail);
         await persistNormalizedMessage(context.integration, normalizedExisting);
         await markOutboundSent(operation.id, { providerMessageId: existing[0].id, providerThreadId: existing[0].threadId });
         return {
@@ -200,14 +206,14 @@ export async function sendManualGmailReply(input: {
 
     try {
       const raw = await client.getMessage(sent.id);
-      const normalized = await normalizeGmailMessage(raw, context.integration.emailAddress);
+      const normalized = await normalizeGmailMessage(raw, mailboxEmail);
       await persistNormalizedMessage(context.integration, normalized);
     } catch {
       const fallback: NormalizedMessage = {
         provider: "gmail",
         providerMessageId: sent.id,
         providerConversationId: sent.threadId,
-        sender: { email: context.integration.emailAddress },
+        sender: { email: mailboxEmail },
         recipients: [{ email: recipientEmail }],
         cc: [],
         subject: context.conversation.subject,
@@ -245,4 +251,9 @@ export async function sendManualGmailReply(input: {
       cause: error,
     });
   }
+}
+
+/** Provider dispatch stays server-side; WhatsApp sending awaits the next acceptance stage. */
+export async function sendManualReply(input: { conversationId: string; text: string; clientRequestId: string }) {
+  return sendManualGmailReply(input);
 }
