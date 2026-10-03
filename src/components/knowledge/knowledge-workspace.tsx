@@ -75,7 +75,7 @@ function SourceInspector({
   const action = (message: string) => toast.success(message, { description: "Mock feedback only — no knowledge source was changed." });
 
   return (
-    <aside className="min-w-0 border-l border-[var(--border)] bg-[var(--surface-1)] xl:sticky xl:top-12 xl:h-[calc(100dvh-68px)] xl:overflow-auto" aria-label="Knowledge source details">
+    <aside className="fixed inset-y-12 right-0 z-40 w-[min(94vw,390px)] min-w-0 overflow-auto border-l border-[var(--border)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none" aria-label="Knowledge source details">
       <div className="sticky top-0 z-10 flex items-start gap-3 border-b border-[var(--border)] bg-[var(--surface-1)] px-4 py-3">
         <div className="min-w-0 flex-1"><div className="flex flex-wrap gap-1.5"><Badge tone={statusTone[source.status]}>{source.status.replace("_", " ")}</Badge><Badge tone={authorityTone[source.authority]}>{source.authority}</Badge></div><h2 className="mt-2 text-sm font-semibold">{source.title}</h2><div className="mt-0.5 text-[11px] text-[var(--muted-foreground)]">{source.type}</div></div>
         <button onClick={onClose} aria-label="Close source details" className="grid size-7 place-items-center rounded-md hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button>
@@ -163,7 +163,7 @@ function SourcesView({ sources, conflicts, selectedId, setSelectedId }: { source
           </table>
         </div>
       </div>
-      {selected ? <SourceInspector source={selected} conflicts={conflicts} sources={sources} onClose={() => setSelectedId(null)} /> : null}
+      {selected ? <><button aria-label="Close source details" onClick={() => setSelectedId(null)} className="fixed inset-0 top-12 z-30 bg-black/25 xl:hidden" /><SourceInspector source={selected} conflicts={conflicts} sources={sources} onClose={() => setSelectedId(null)} /></> : null}
     </div>
   );
 }

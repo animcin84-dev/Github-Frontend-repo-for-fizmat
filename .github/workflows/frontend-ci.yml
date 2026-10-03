@@ -2,14 +2,14 @@ name: frontend-ci
 
 on:
   push:
-    branches: [main, "feat/phase-c-intelligence-knowledge"]
+    branches: [main, "feat/phase-d-ai-quality"]
   pull_request:
     branches: [main]
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Show verified commit
@@ -22,3 +22,16 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Upload browser artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-artifacts
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7

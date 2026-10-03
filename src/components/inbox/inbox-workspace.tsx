@@ -6,6 +6,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowLeft,
   Bot,
   CheckCircle2,
   ChevronRight,
@@ -52,9 +53,13 @@ function resolveKnowledgeSourceId(source: ConversationDetail["evidence"][number]
 
 
 function useViewportFlags() {
-  const [flags, setFlags] = useState({ showQueues: true, showInspector: true });
+  const [flags, setFlags] = useState({ narrow: false, showQueues: true, showInspector: true });
   useEffect(() => {
-    const update = () => setFlags({ showQueues: window.innerWidth >= 1120, showInspector: window.innerWidth >= 1360 });
+    const update = () => setFlags({
+      narrow: window.innerWidth < 768,
+      showQueues: window.innerWidth >= 1120,
+      showInspector: window.innerWidth >= 1360,
+    });
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -141,6 +146,27 @@ function ConversationWorkspace({ detail, showInspector }: { detail: Conversation
   </Group>;
 }
 
+function MobileConversationWorkspace({ detail, onBack }: { detail: ConversationDetail; onBack: () => void }) {
+  const [draftText, setDraftText] = useState(detail.aiDraft?.text ?? "");
+  const [actionState, setActionState] = useState("");
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+
+  return <div className="flex h-full min-h-0 flex-col bg-[var(--background)]">
+    <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-1)] px-2">
+      <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="size-3.5" />Inbox</Button>
+      <Button size="sm" onClick={() => setEvidenceOpen(true)}><Sparkles className="size-3.5" />AI & evidence</Button>
+    </div>
+    <div className="min-h-0 flex-1"><ThreadPanel detail={detail} /></div>
+    {evidenceOpen ? <>
+      <button aria-label="Close AI and evidence inspector" onClick={() => setEvidenceOpen(false)} className="fixed inset-0 top-12 z-40 bg-black/30" />
+      <aside role="dialog" aria-modal="true" aria-label="AI and evidence inspector" className="fixed inset-y-12 right-0 z-50 w-[min(94vw,420px)] border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl">
+        <button onClick={() => setEvidenceOpen(false)} aria-label="Close AI and evidence inspector" className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-md bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button>
+        <EvidenceInspector detail={detail} draftText={draftText} setDraftText={setDraftText} actionState={actionState} setActionState={setActionState} />
+      </aside>
+    </> : null}
+  </div>;
+}
+
 export function InboxWorkspace({ initialConversationId }: { initialConversationId?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -151,6 +177,7 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
   const [ai, setAi] = useQueryState("ai", { defaultValue: "" });
   const [sla, setSla] = useQueryState("sla", { defaultValue: "" });
   const [selectedId, setSelectedId] = useState(initialConversationId ?? "conv-00001");
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(Boolean(initialConversationId));
 
   const listQuery = useQuery({ queryKey: ["conversations"], queryFn: getConversationList });
   const detailQuery = useQuery({ queryKey: ["conversation", selectedId], queryFn: () => getConversationDetail(selectedId) });
@@ -169,9 +196,10 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
 
   const select = useCallback((id: string) => {
     setSelectedId(id);
+    if (flags.narrow) setMobileDetailOpen(true);
     const query = searchParams.toString();
     router.replace(`/inbox/${id}${query ? `?${query}` : ""}`, { scroll: false });
-  }, [router, searchParams]);
+  }, [flags.narrow, router, searchParams]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -193,9 +221,29 @@ export function InboxWorkspace({ initialConversationId }: { initialConversationI
   if (listQuery.isLoading) return <LoadingState label="Loading 5,200-conversation mock queue…" />;
   const detail = detailQuery.data;
 
-  return <div className="h-[calc(100dvh-48px)] overflow-hidden border-t-0 border-[var(--border)]"><Group orientation="horizontal" className="h-full">
+  const listPane = <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-[48px] shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-1)] px-3">
+      <div><div className="text-xs font-semibold">Inbox</div><div className="text-[10px] text-[var(--muted-foreground)]">{filtered.length.toLocaleString()} of {counts.all.toLocaleString()}</div></div>
+      <div className="flex items-center gap-1 text-[10px] text-[var(--muted-foreground)]"><kbd className="rounded border px-1">J/K</kbd><span>next</span></div>
+    </div>
+    <FilterBar q={q} setQ={setQ} priority={priority} setPriority={setPriority} channel={channel} setChannel={setChannel} ai={ai} setAi={setAi} sla={sla} setSla={setSla} />
+    {filtered.length ? <div className="min-h-0 flex-1"><ConversationList items={filtered} selectedId={selectedId} onSelect={select} /></div> : <div className="grid flex-1 place-items-center p-6 text-center"><div><Search className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No conversations match</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Clear one or more URL-backed filters.</div></div></div>}
+  </div>;
+
+  if (flags.narrow) {
+    const closeMobileDetail = () => {
+      setMobileDetailOpen(false);
+      const query = searchParams.toString();
+      router.replace(`/inbox${query ? `?${query}` : ""}`, { scroll: false });
+    };
+    return <div className="h-[calc(100dvh-48px)] min-w-0 overflow-hidden border-t-0 border-[var(--border)]">
+      {mobileDetailOpen && detail ? <MobileConversationWorkspace key={detail.id} detail={detail} onBack={closeMobileDetail} /> : listPane}
+    </div>;
+  }
+
+  return <div className="h-[calc(100dvh-48px)] min-w-0 overflow-hidden border-t-0 border-[var(--border)]"><Group orientation="horizontal" className="h-full">
     {flags.showQueues ? <><Panel id="queues" defaultSize="196px" minSize="160px" maxSize="240px" groupResizeBehavior="preserve-pixel-size"><QueueRail counts={counts} setPriority={setPriority} setSla={setSla} /></Panel><Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" /></> : null}
-    <Panel id="list" defaultSize="350px" minSize="300px" maxSize="430px" groupResizeBehavior="preserve-pixel-size"><div className="flex h-full min-h-0 flex-col"><div className="flex h-[48px] shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-1)] px-3"><div><div className="text-xs font-semibold">Inbox</div><div className="text-[10px] text-[var(--muted-foreground)]">{filtered.length.toLocaleString()} of {counts.all.toLocaleString()}</div></div><div className="flex items-center gap-1 text-[10px] text-[var(--muted-foreground)]"><kbd className="rounded border px-1">J/K</kbd><span>next</span></div></div><FilterBar q={q} setQ={setQ} priority={priority} setPriority={setPriority} channel={channel} setChannel={setChannel} ai={ai} setAi={setAi} sla={sla} setSla={setSla} />{filtered.length ? <div className="min-h-0 flex-1"><ConversationList items={filtered} selectedId={selectedId} onSelect={select} /></div> : <div className="grid flex-1 place-items-center p-6 text-center"><div><Search className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No conversations match</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Clear one or more URL-backed filters.</div></div></div>}</div></Panel>
+    <Panel id="list" defaultSize="350px" minSize="300px" maxSize="430px" groupResizeBehavior="preserve-pixel-size">{listPane}</Panel>
     <Separator className="w-1 bg-[var(--border)] transition-colors hover:bg-[var(--accent)] focus-visible:bg-[var(--accent)]" />
     <Panel id="workspace" minSize="420px"><div className="h-full">{detail ? <ConversationWorkspace key={detail.id} detail={detail} showInspector={flags.showInspector} /> : <LoadingState label="Loading conversation detail…" />}</div></Panel>
   </Group></div>;
