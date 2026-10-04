@@ -1,10 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, Clock3, Mail, RefreshCw, ShieldCheck, Unplug, Waves } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, Mail, RefreshCw, ShieldCheck, Unplug, Waves, Search, MessageSquareText } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import type { getWhatsAppIntegrationStatus } from "@/server/services/whatsapp-service";
+import { DetailBand, FilterHinge, OperationalWorkspace, ReferenceSummary, RouteHeader, WorkspaceTabs, ReferenceLink } from "@/components/reference/reference-layout";
+import { cn } from "@/lib/utils";
 import type { IntegrationStatusDTO } from "@/server/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +29,9 @@ export function GmailIntegration() {
   const queryClient = useQueryClient();
   const params = useSearchParams();
   const statusQuery = useQuery({ queryKey: ["gmail-integration-status"], queryFn: status });
+  const [provider, setProvider] = useState("gmail");
+  const [search, setSearch] = useState("");
+  const whatsappQuery = useQuery({ queryKey: ["whatsapp-integration-status"], queryFn: async () => json<Awaited<ReturnType<typeof getWhatsAppIntegrationStatus>>>(await fetch("/api/integrations/whatsapp/status", { cache: "no-store" })) });
   const [disconnectConfirm, setDisconnectConfirm] = useState(false);
   const [editingSettings, setEditingSettings] = useState(false);
   const [backfillDays, setBackfillDays] = useState(30);
@@ -92,23 +98,12 @@ export function GmailIntegration() {
   };
   const callbackError = params.get("gmail") === "error" ? params.get("code") : null;
 
-  return (
-    <div className="si-page mx-auto max-w-[1180px]">
-      <div className="si-page-header">
-        <div>
-          <h1 className="si-page-title">Integrations</h1>
-          <p className="si-page-subtitle">Gmail connection and WhatsApp setup for the unified support Inbox.</p>
-        </div>
-        <Badge tone={data.mode === "database" ? "success" : "warning"}>{data.mode === "database" ? "REAL DATA MODE" : "MOCK MODE"}</Badge>
-      </div>
-
-      {callbackError ? (
-        <Surface className="mb-4 border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] p-4">
-          <div className="flex items-start gap-2 text-sm"><AlertTriangle className="mt-0.5 size-4 text-[var(--danger)]" /><div><strong>Gmail connection did not complete.</strong><div className="mt-1 text-xs text-[var(--muted-foreground)]">Error category: {callbackError}. No OAuth tokens are shown in the browser.</div></div></div>
-        </Surface>
-      ) : null}
-
-      <Surface className="overflow-hidden">
+  const wa = whatsappQuery.data;
+  const waState = whatsappQuery.isError ? "Status unavailable" : !wa ? "Checking setup" : wa.status === "inbound_received" ? "Inbound received" : wa.configured ? "Configured · test pending" : "Setup required";
+  const gmailState = data.connected ? "Connected" : data.mode === "mock" ? "Not active" : "Not connected";
+  const providers = [{id:"gmail",name:"Gmail",state:gmailState,note:data.connected ? data.mailbox ?? "Connected support mailbox" : "Server-side OAuth",Icon:Mail},{id:"whatsapp",name:"WhatsApp",state:waState,note:"Official Meta Cloud API · phone E2E unverified",Icon:MessageSquareText}].filter((item) => `${item.name} ${item.state}`.toLowerCase().includes(search.toLowerCase()));
+  const gmailContent = (
+      <Surface className="si-integration-content overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[var(--border)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="grid size-9 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-2)]"><Mail className="size-4" /></div>
@@ -128,13 +123,14 @@ export function GmailIntegration() {
           ) : null}
         </div>
 
+        <div className="si-detail-grid"><div className="si-detail-tile">Sync state<strong>{data.syncState ?? "Not reported"}</strong>Last run: {data.latestSync?.status ?? "Not recorded"}</div><div className="si-detail-tile">Backfill<strong>{data.backfillDays ?? 30} days</strong>Configured mailbox scope</div><div className="si-detail-tile">Reply readiness<strong>{data.connected ? "Manual review" : "Unavailable"}</strong>Explicit human send required</div></div>
         {data.connected ? (
           <div>
             <div className="grid divide-y divide-[var(--border)] md:grid-cols-2 md:divide-x md:divide-y-0">
               <section className="p-4">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">Connection</div>
                 <dl className="mt-3 grid grid-cols-[130px_1fr] gap-x-3 gap-y-2 text-xs">
-                  <dt className="text-[var(--muted-foreground)]">Mailbox</dt><dd className="font-semibold">{data.mailbox}</dd>
+                  <dt className="text-[var(--muted-foreground)]">Mailbox</dt><dd className="break-all font-semibold">{data.mailbox}</dd>
                   <dt className="text-[var(--muted-foreground)]">Mode</dt><dd>Real data</dd>
                   <dt className="text-[var(--muted-foreground)]">Backfill</dt><dd>{data.backfillDays ?? 30} days</dd>
                   <dt className="text-[var(--muted-foreground)]">Sync query</dt><dd className="break-all font-mono text-[10px]">{data.syncQuery}</dd>
@@ -177,17 +173,25 @@ export function GmailIntegration() {
             {data.latestSync?.errorCode ? <div className="border-t border-[var(--border)] px-4 py-3 text-xs text-[var(--danger)]"><strong>{data.latestSync.errorCode}</strong> · {data.latestSync.errorMessage}</div> : null}
 
             <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] px-4 py-3">
-              <Button size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}><RefreshCw className={`size-3.5 ${sync.isPending ? "animate-spin" : ""}`} />{sync.isPending ? "Syncing" : "Sync now"}</Button><a href="/api/integrations/gmail/connect" className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 text-xs font-medium hover:bg-[var(--surface-2)]"><RefreshCw className="size-3.5" />Reconnect</a>
+              <a href="/api/integrations/gmail/connect" className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 text-xs font-medium hover:bg-[var(--surface-2)]"><RefreshCw className="size-3.5" />Reconnect</a>
               <Button size="sm" onClick={() => watch.mutate()} disabled={!data.watchConfigured || watch.isPending}><Waves className="size-3.5" />Renew watch</Button>
               {!disconnectConfirm ? <Button size="sm" variant="ghost" onClick={() => setDisconnectConfirm(true)}><Unplug className="size-3.5" />Disconnect</Button> : <div className="flex flex-wrap items-center gap-2 rounded-md border border-[color-mix(in_srgb,var(--danger)_25%,var(--border))] px-2 py-1.5 text-xs"><span>Historical conversations remain available.</span><Button size="sm" variant="danger" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>Confirm disconnect</Button><Button size="sm" onClick={() => setDisconnectConfirm(false)}>Cancel</Button></div>}
             </div>
           </div>
         ) : null}
       </Surface>
-
-      <WhatsAppIntegration />
-
-      <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-[var(--muted-foreground)]"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />Refresh tokens are server-only and encrypted at rest by the application. Tokens, OAuth codes and full email bodies are not surfaced here.</div>
-    </div>
   );
+  return <div className="si-page">
+    <RouteHeader title="Integrations" note={<Badge tone={data.mode === "database" ? "success" : "warning"}>{data.mode === "database" ? "REAL DATA MODE" : "MOCK MODE"}</Badge>} actions={<ReferenceLink href="/inbox">Open inbox ↗</ReferenceLink>} />
+    <ReferenceSummary metrics={[{label:"Connected mailboxes",value:data.connected ? 1 : 0,note:"Gmail OAuth status"},{label:"Stored Gmail threads",value:data.storedThreads ?? "Not reported",note:"Persisted conversation count"},{label:"Stored messages",value:data.storedMessages ?? "Not reported",note:"Persisted Gmail messages"}]} activityLabel="Latest Gmail sync counts" activity={data.latestSync ? [{label:"Found",value:data.latestSync?.messagesFound ?? 0,marker:"F"},{label:"Imported",value:data.latestSync?.messagesInserted ?? 0,marker:"I"},{label:"Dedupe",value:data.latestSync?.messagesSkipped ?? 0,marker:"D"}] : []} signal={{label:"Gmail connection",value:gmailState,note:data.mode === "database" ? "Real data" : "Demo mode",options:[{label:"Gmail",value:data.connected ? "Connected" : "Inactive"},{label:"WhatsApp",value:whatsappQuery.isError ? "Unavailable" : wa ? wa.configured ? "Configured" : "Setup" : "Checking"},{label:"Phone E2E",value:"Unverified"}],active:0}} />
+    <FilterHinge count={search ? 1 : 0}><span className="si-metric-note">Connection, setup and acceptance are shown separately</span><label className="si-inbox-search"><Search className="size-3.5" /><input aria-label="Search integrations" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find integration" /></label></FilterHinge>
+    <OperationalWorkspace className="si-route-workspace si-integrations-workspace" title="Channel integrations" master={<>{providers.map(({id,name,state,note,Icon}) => <button key={id} className={cn("si-reference-row",provider === id && "is-selected")} aria-pressed={provider === id} onClick={() => setProvider(id)}><span className="si-mini-avatar"><Icon className="size-4" /></span><span className="si-row-copy"><strong>{name}</strong><span>{note}</span></span><span className="si-row-value">{state}</span></button>)}{!providers.length ? <div className="si-empty-inset">No matching integrations.</div> : null}<div className="mt-4 px-3 text-xs leading-5 text-[var(--muted-foreground)]"><ShieldCheck className="mb-2 size-4" />Human review is required before sending. Credentials stay on the server.</div></>} tabs={<WorkspaceTabs label="Integration providers" items={[{id:"gmail",label:"Gmail"},{id:"whatsapp",label:"WhatsApp"}]} active={provider} onChange={setProvider} />} detail={<>
+      <div className="si-detail-scroll si-integration-diagnostics">
+        {callbackError ? <div className="mb-3 rounded-2xl border border-[var(--danger)] p-3 text-xs"><AlertTriangle className="mb-2 size-4" /><strong>Gmail connection did not complete.</strong><p className="mt-1">Error category: {callbackError}. No OAuth tokens are shown in the browser.</p></div> : null}
+        {provider === "gmail" ? <>{gmailContent}</> : <WhatsAppIntegration />}
+      </div>
+      <DetailBand metrics={provider === "gmail" ? [{label:"Last synchronized",value:data.lastSyncedAt ? new Date(data.lastSyncedAt).toLocaleDateString() : "Never"},{label:"Incremental",value:data.connected ? "Available" : "Inactive"},{label:"Send",value:data.connected ? "Human review" : "Unavailable"}] : [{label:"Setup",value:waState},{label:"Inbound stored",value:wa?.storedMessages ?? "Not reported"},{label:"Phone acceptance",value:"Not verified"}]} action={provider === "gmail" && data.connected ? <Button variant="primary" size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}><RefreshCw className={`size-3.5 ${sync.isPending ? "animate-spin" : ""}`} />{sync.isPending ? "Syncing" : "Sync now"}</Button> : <ReferenceLink primary href="/inbox">View inbox</ReferenceLink>} />
+    </>} />
+    <div className="mt-3 flex items-start gap-2 text-[11px] leading-5 text-[var(--muted-foreground)]"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />Refresh tokens are server-only and encrypted at rest by the application. Tokens, OAuth codes and full email bodies are not surfaced here.</div>
+  </div>;
 }

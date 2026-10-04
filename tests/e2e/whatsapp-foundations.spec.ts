@@ -3,11 +3,12 @@ import { expect, test } from "@playwright/test";
 
 test("WhatsApp setup placeholder does not claim a connection or offer sending", async ({ page }) => {
   await page.goto("/integrations");
+  await page.getByRole("tab", { name: "WhatsApp", exact: true }).click();
   await expect(page.getByRole("heading", { name: "WhatsApp", exact: true })).toBeVisible();
   await expect(page.getByText("SETUP REQUIRED", { exact: true })).toBeVisible();
   await expect(page.getByText("CONNECTED", { exact: true })).toHaveCount(0);
   await expect(page.getByText("WHATSAPP_ACCESS_TOKEN", { exact: false })).toBeVisible();
-  await expect(page.getByText("Not verified", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("WhatsApp setup details").getByText("Not verified", { exact: true })).toBeVisible();
 });
 
 test.describe("WhatsApp Inbox with synthetic API responses", () => {

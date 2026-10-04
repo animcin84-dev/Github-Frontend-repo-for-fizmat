@@ -19,14 +19,14 @@ export function WhatsAppIntegration() {
     },
   });
   const data = query.data;
-  const label = !data ? "CHECKING SETUP" : data.status === "inbound_received"
+  const label = query.isError ? "STATUS UNAVAILABLE" : !data ? "CHECKING SETUP" : data.status === "inbound_received"
     ? "INBOUND RECEIVED" : data.configured ? "CONFIGURED · TEST PENDING" : "SETUP REQUIRED";
-  return <Surface className="mt-4 p-4">
+  return <Surface aria-label="WhatsApp setup details" className="si-integration-content p-4">
     <div className="flex items-start gap-3">
       <div className="grid size-9 shrink-0 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-2)]"><MessageSquareText className="size-4" /></div>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2"><h2 className="text-sm font-semibold">WhatsApp</h2><Badge tone="warning">{label}</Badge></div>
-        <p className="mt-1 text-xs text-[var(--muted-foreground)]">Official Meta Cloud API. Public webhook setup and real phone acceptance are pending.</p>
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">Official Meta Cloud API. Public webhook transport was verified in P1 acceptance; this view does not recheck the public endpoint. Real phone acceptance remains unverified.</p>
       </div>
     </div>
     {query.isError ? <div className="mt-3"><ErrorState detail={query.error.message} /></div> : null}
