@@ -52,6 +52,7 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="sm"
+      className="si-circle-control"
       onClick={toggle}
       aria-label={dark ? "Use light theme" : "Use dark theme"}
       aria-pressed={dark}

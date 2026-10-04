@@ -13,5 +13,5 @@ const toneClass: Record<Tone, string> = {
 };
 
 export function Badge({ children, tone = "neutral", className }: { children: ReactNode; tone?: Tone; className?: string }) {
-  return <span className={cn("inline-flex h-5 items-center gap-1 rounded-md border px-1.5 text-[11px] font-medium", toneClass[tone], className)}>{children}</span>;
+  return <span className={cn("inline-flex h-5 items-center gap-1 rounded-full border px-2 text-[11px] font-medium", toneClass[tone], className)}>{children}</span>;
 }
