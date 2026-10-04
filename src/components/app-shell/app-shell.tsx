@@ -27,11 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return <div className="si-shell">
     <header className="si-topbar">
       <div className="flex items-center gap-2">
-        <details className="si-mobile-navigation">
-          <summary className="si-circle-control list-none" aria-label="Open navigation"><Menu size={16} aria-hidden="true" /></summary>
-          <nav className="si-mobile-menu" aria-label="Mobile navigation">{nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="si-mobile-link" aria-current={isActive(href) ? "page" : undefined} onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}><Icon size={16} aria-hidden="true" />{label}</Link>)}</nav>
-        </details>
-        <Link href="/overview" className="si-brand" aria-label="Support Intelligence home"><Sun aria-hidden="true" /><span>support intelligence</span></Link>
+        <Link href="/overview" className="si-brand" aria-label="Support workspace home"><Sun aria-hidden="true" /><span>support intelligence</span></Link>
       </div>
       <nav className="si-top-nav" aria-label="Primary navigation">{nav.slice(0, 6).map(({ href, label }) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={cn("si-nav-link", isActive(href) && "is-active")}>{isActive(href) ? <motion.div className="si-active-pill" layoutId="primary-navigation" transition={{ duration: reduced ? 0 : .18, ease: [.22, 1, .36, 1] }} /> : null}<span>{label}</span></Link>)}</nav>
       <div className="si-top-utilities">
@@ -39,6 +35,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         {nav.slice(6).map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-label={label} title={label} className="si-circle-control" aria-current={isActive(href) ? "page" : undefined}><Icon size={14} aria-hidden="true" /></Link>)}
         <ThemeToggle />
       </div>
+        <details className="si-mobile-navigation">
+          <summary className="si-circle-control list-none" aria-label="Open navigation"><Menu size={16} aria-hidden="true" /></summary>
+          <nav className="si-mobile-menu" aria-label="Mobile navigation">{nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="si-mobile-link" aria-current={isActive(href) ? "page" : undefined} onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}><Icon size={16} aria-hidden="true" />{label}</Link>)}</nav>
+        </details>
     </header>
     <main className="min-w-0">{children}</main>
     <CommandPalette />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Sparkles } from "lucide-react";
+import { CircleDot } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,9 +33,9 @@ export function ConversationAnalysisPanel({ detail }: { detail: ConversationDeta
     }
   };
 
-  return <section aria-label="Conversation triage" className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] p-3">
+  return <section aria-label="Conversation triage" className="si-triage-panel rounded-[20px] border border-[var(--border)] bg-[var(--surface-1)] p-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex items-center gap-2 text-xs font-semibold"><Sparkles className="size-3.5 text-[var(--ai)]" />AI analysis</div>
+      <div className="flex items-center gap-2 text-xs font-semibold"><CircleDot className="size-3.5 text-[var(--ai)]" />AI analysis</div>
       <Badge tone={status === "completed" ? "success" : status === "failed" ? "danger" : "warning"}>{status === "completed" ? "Complete" : status}</Badge>
     </div>
     {result ? <>

@@ -158,3 +158,47 @@ button {cursor:pointer;} button:disabled {cursor:default;}
 @media (min-width:768px) and (max-height:800px) {.si-topbar{height:58px;}.si-page-header{min-height:64px;margin-bottom:12px;}.si-summary-grid{min-height:178px;}.si-summary-primary,.si-summary-signal{padding:18px 24px 12px;}.si-activity-track{margin-top:18px;}.si-filter-hinge{min-height:58px;}.si-overview-workspace{min-height:320px;}.si-overview-workspace .si-detail-pane{padding:16px;margin-top:30px;}.si-overview-workspace .si-detail-header h2{font-size:22px;}.si-overview-workspace .si-overview-chart{height:52px;}.si-overview-workspace .si-detail-tile{min-height:76px;padding:10px;}.si-overview-workspace .si-detail-tile strong{font-size:20px;}.si-overview-workspace .si-detail-band{padding:10px 12px;}}
 @media (min-width:768px) and (max-height:800px) {.si-overview-workspace .si-detail-header>div:last-child .inline-flex{display:none;}.si-overview-workspace .si-detail-header .si-label{font-size:10px;line-height:13px;margin-bottom:3px;}.si-overview-workspace .si-detail-tile{font-size:10px;line-height:14px;min-height:76px;}.si-overview-workspace .si-detail-tile strong{line-height:24px;margin:4px 0;}.si-overview-workspace .si-overview-chart{height:32px;margin-bottom:8px;}.si-overview-workspace .si-detail-band{padding:8px 12px;}.si-overview-workspace .si-detail-band strong{font-size:16px;line-height:20px;margin-top:2px;}.si-overview-workspace .si-detail-pane{padding:12px;}.si-overview-workspace .si-detail-header{margin-bottom:10px;}}
 @media (min-width:768px) and (max-height:800px) {.si-overview-workspace .si-reference-row{height:44px;min-height:44px;padding:6px 10px;}.si-overview-workspace .si-row-copy strong{line-height:14px;}.si-overview-workspace .si-row-copy span{line-height:12px;}.si-overview-workspace .si-pane-heading{min-height:30px;}.si-overview-workspace .si-master-pane>div:last-child{padding-top:6px;line-height:14px;}.si-filter-hinge{min-height:48px;}}
+.si-inbox-search {display:flex;align-items:center;gap:7px;flex:1;min-width:180px;border-radius:999px;background:#ffffff35;padding:0 10px;}
+.si-inbox-search input {border:0;background:none!important;flex:1;}
+.si-inbox-workspace {height:560px;min-height:480px;}
+.si-inbox-workspace .si-detail-pane {padding:0;overflow:hidden;}
+.si-inbox-workspace .si-master-pane {padding-top:24px;min-height:0;}
+.si-inbox-workspace .si-master-pane>div>div:first-child {background:transparent;border:0;}
+.si-conversation-list {padding:0 3px;background:transparent;}
+.si-inbox-row {border-radius:14px;background:#ffffff06;border:1px solid #ffffff09;padding:10px 12px;color:#edf2f5;margin-top:4px;}
+.si-inbox-row:hover {background:#ffffff12;}
+.si-inbox-row.is-selected {background:var(--si-gradient-steel);color:#1d303e;--muted-foreground:#284254;--border:#ffffff40;--surface-2:#ffffff66;--surface-1:#ffffff55;--warning:#513713;--danger:#642721;--info:#153d5b;--ai:#153d5b;}
+.si-thread {background:transparent;}
+.si-thread-header {background:transparent;border-bottom-color:#ffffff20;}
+.si-thread-header h2 {font-size:19px;letter-spacing:-.03em;}
+.si-thread .si-detail-tile {min-height:78px;padding:10px;font-size:10px;}
+.si-thread .si-detail-tile strong {font-size:18px;}
+.si-thread .si-detail-band {flex:none;margin:8px 14px 14px;}
+.si-thread .si-detail-band strong {font-size:14px;}
+.si-conversation-workspace {overflow:auto;}
+.si-mock-evidence {background:#ffffff17;padding:14px;border-radius:20px;margin:0 14px 14px;}
+.si-mock-evidence summary {font-size:11px;cursor:pointer;padding:4px 0 10px;}
+.si-mock-evidence>div {height:440px;}
+.si-conversation-workspace:has(.si-mock-evidence)>.si-thread {height:420px;}
+.si-reply-sheet {position:fixed;right:30px;bottom:24px;z-index:50;width:min(64vw,800px);height:min(76dvh,650px);overflow:hidden;border-radius:26px;border:1px solid var(--border-strong);background:var(--surface-1);color:var(--foreground);box-shadow:0 20px 70px #17232b60;}
+.si-reply-sheet textarea {background:var(--surface-1);}
+.si-mobile-inbox-list {padding:10px;border-radius:26px;background:var(--si-gradient-dark);color:#edf2f5;--foreground:#edf2f5;--surface-1:#303333;--surface-2:#414849;--muted-foreground:#c9d5de;--border:#ffffff25;--danger:#ffb4a8;--warning:#f7d28c;--info:#c1e1f8;--ai:#c1e1f8;}
+@media (max-width:767px) {.si-thread-header{padding-inline:12px;gap:8px;}.si-thread-header h2{font-size:14px;}.si-thread-header>div:nth-child(2)>div:nth-child(2){flex-wrap:wrap;font-size:10px;gap:3px;}.si-reply-sheet{right:10px;bottom:10px;width:calc(100vw - 20px);height:80dvh;}.si-inbox-search{min-width:120px;}.si-thread .si-detail-band{display:none;}.si-mobile-inbox-list .si-inbox-row{font-size:11px;}}
+.si-inbox-workspace {height:clamp(420px,calc(100dvh - 465px),600px);min-height:420px;}
+.si-reply-sheet {--surface-1:#f6f9fc;--surface-2:#e9f0f6;--foreground:#20303d;--muted-foreground:#4e6372;--border:#c7d7e3;--border-strong:#a5bbcc;--success:#23583c;--warning:#6c4a13;--danger:#8d2d27;--focus-ring:#365e77;background:var(--surface-1);color:var(--foreground);animation:si-sheet-in 260ms var(--si-ease-out);}
+.si-conversation-workspace {animation:si-content-in 220ms var(--si-ease-out);}
+@keyframes si-content-in {from{opacity:.4;}to{opacity:1;}}
+@keyframes si-sheet-in {from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@media (max-width:767px) {.si-mobile-navigation{position:absolute;left:0;top:14px;}.si-brand{padding-left:40px;}.si-mobile-menu{top:40px;}}
+[class*="text-[var(--accent)]"] {color:var(--info);}
+.si-route-workspace {height:440px;min-height:400px;}
+.si-route-workspace .si-master-pane {min-height:0;overflow:auto;}
+.si-route-workspace .si-detail-pane {padding:16px;min-height:0;margin-top:30px;}
+.si-detail-scroll {min-height:0;flex:1;overflow:auto;padding-right:4px;}
+.si-route-workspace .si-detail-band {flex:none;margin-top:12px;padding:12px;gap:10px;}
+.si-route-workspace .si-detail-band strong {font-size:16px;}
+.si-route-workspace .si-detail-header h2 {font-size:22px;}
+.si-route-workspace .si-detail-tile {min-height:80px;padding:12px;font-size:10px;}
+.si-route-workspace .si-detail-tile strong {font-size:19px;}
+@media (min-width:768px) and (max-height:800px) {.si-route-workspace{height:360px;min-height:360px;}}
+@media (max-width:767px) {.si-route-workspace{height:auto;min-height:0;}.si-route-workspace .si-detail-pane{min-height:420px;}.si-route-workspace .si-detail-scroll{max-height:440px;}.si-route-workspace .si-master-pane{max-height:320px;}}
