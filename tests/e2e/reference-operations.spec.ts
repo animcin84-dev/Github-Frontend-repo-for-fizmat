@@ -149,6 +149,10 @@ test("all operator workspaces expand to the viewport and restore their selection
       const controlBox = await expandControl.boundingBox();
       const tabsBox = await workspace.locator(".si-workspace-notch").boundingBox();
       expect(controlBox!.x + controlBox!.width).toBeLessThanOrEqual(tabsBox!.x);
+      expect(tabsBox!.y).toBeGreaterThan(before!.y);
+      expect(tabsBox!.x + tabsBox!.width).toBeLessThan(before!.x + before!.width);
+      const detailBox = await workspace.locator(".si-detail-pane").boundingBox();
+      expect(detailBox!.y).toBeGreaterThanOrEqual(tabsBox!.y + tabsBox!.height + 4);
       await expandControl.click();
       const minimize = workspace.getByRole("button", { name: "Minimize workspace", exact: true });
       await expect(minimize).toBeFocused();
