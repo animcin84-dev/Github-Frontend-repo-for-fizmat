@@ -1,3 +1,4 @@
+import { getConversationAnalysis, getConversationAnalysesForList } from "@/server/services/analysis-service";
 import { addressValue } from "@/server/integrations/types";
 import type { ConversationDetail, ConversationListItem, ConversationStatus } from "@/lib/domain";
 import { getConversationDetail as getMockDetail, getConversationList as getMockList } from "@/lib/mocks/service";
@@ -33,24 +34,28 @@ function status(value: string): ConversationStatus {
 export async function getConversationListForCurrentMode(): Promise<ConversationListItem[]> {
   if (supportDataMode() === "mock") return (await getMockList()).map((item) => ({ ...item, source: "mock" as const, providerLabel: "Fixture", analysisState: "simulated" as const }));
   const rows = await listConversationRows();
-  return Promise.all(rows.map(async ({ conversation, customer, integration }) => ({
-    id: conversation.id,
-    customer: { id: customer?.id ?? `${conversation.provider}:${conversation.id}`, name: customer?.name ?? customer?.email ?? customer?.phone ?? "Unknown sender" },
-    subject: conversation.subject,
-    preview: (await getLatestMessagePreview(conversation.id)).slice(0, 180),
-    channel: conversation.provider === "whatsapp" ? "whatsapp" as const : "email" as const,
-    status: status(conversation.status),
-    priority: "untriaged" as const,
-    category: "Untriaged",
-    unread: conversation.unread,
-    source: conversation.provider === "whatsapp" ? "whatsapp" as const : "gmail" as const,
-    providerLabel: conversation.provider === "whatsapp" ? "WhatsApp" : "Gmail",
-    integrationAccountId: integration.id,
-    analysisState: "pending" as const,
-    aiState: "unanalyzed" as const,
-    slaRisk: "none" as const,
-    updatedAt: conversation.latestMessageAt.toISOString(),
-  })));
+  const analyses = await getConversationAnalysesForList(rows.map(({ conversation }) => conversation));
+  return Promise.all(rows.map(async ({ conversation, customer, integration }) => {
+    const analysis = analyses.get(conversation.id)!;
+    return ({
+      id: conversation.id,
+      customer: { id: customer?.id ?? `${conversation.provider}:${conversation.id}`, name: customer?.name ?? customer?.email ?? customer?.phone ?? "Unknown sender" },
+      subject: conversation.subject,
+      preview: (await getLatestMessagePreview(conversation.id)).slice(0, 180),
+      channel: conversation.provider === "whatsapp" ? "whatsapp" as const : "email" as const,
+      status: status(conversation.status),
+      priority: analysis.priority ?? "untriaged" as const,
+      category: analysis.result?.category ?? "Untriaged",
+      unread: conversation.unread,
+      source: conversation.provider === "whatsapp" ? "whatsapp" as const : "gmail" as const,
+      providerLabel: conversation.provider === "whatsapp" ? "WhatsApp" : "Gmail",
+      integrationAccountId: integration.id,
+      analysisState: analysis.stale ? "pending" as const : analysis.status,
+      aiState: "unanalyzed" as const,
+      slaRisk: "none" as const,
+      updatedAt: conversation.latestMessageAt.toISOString(),
+    });
+  }));
 }
 
 export async function getConversationDetailForCurrentMode(id: string): Promise<ConversationDetail | undefined> {
@@ -65,6 +70,7 @@ export async function getConversationDetailForCurrentMode(id: string): Promise<C
   const context = await getConversationContext(id);
   if (!context) return undefined;
   const rows = await getConversationMessages(id);
+  const analysis = await getConversationAnalysis(id);
   return {
     id: context.conversation.id,
     customer: {
@@ -77,16 +83,21 @@ export async function getConversationDetailForCurrentMode(id: string): Promise<C
     },
     subject: context.conversation.subject,
     status: status(context.conversation.status),
-    priority: "untriaged",
-    category: "Untriaged",
+    priority: analysis.priority ?? "untriaged",
+    category: analysis.result?.category ?? "Untriaged",
+    subcategory: analysis.result?.subcategory ?? undefined,
     source: context.conversation.provider === "whatsapp" ? "whatsapp" : "gmail",
     providerLabel: context.conversation.provider === "whatsapp" ? "WhatsApp" : "Gmail",
     integrationAccountId: context.integration.id,
     providerConversationId: context.conversation.providerConversationId,
-    analysisState: "pending",
+    analysisState: analysis.stale ? "pending" : analysis.status,
+    analysis,
     replyMode: context.conversation.provider === "gmail" ? "gmail_real" : "unavailable",
-    summary: "AI analysis pending. This real provider conversation has not been classified or grounded yet.",
-    triageSignals: [],
+    summary: analysis.result?.summary ?? "AI analysis pending. This real provider conversation has not been classified or grounded yet.",
+    triageSignals: analysis.result ? [
+      ...analysis.result.riskFlags.map((risk) => ({ label: risk, kind: "risk" as const, explanation: `Extracted ${risk} risk; human review required.` })),
+      ...(analysis.priorityReasons ?? []).map((reason) => ({ label: "Priority rule", kind: "impact" as const, explanation: reason })),
+    ] : [],
     messages: rows.map(({ message, attachments }) => ({
       id: message.id,
       author: message.direction === "outbound" ? "agent" as const : "customer" as const,

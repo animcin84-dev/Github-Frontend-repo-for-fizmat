@@ -1,4 +1,25 @@
+import type { TriageResult } from "@/server/analysis/contracts";
+
 export type Priority = "low" | "medium" | "high" | "critical";
+export type AnalysisState = "simulated" | "pending" | "running" | "completed" | "failed";
+export interface ConversationAnalysis {
+  id?: string;
+  status: Exclude<AnalysisState, "simulated">;
+  configured: boolean;
+  stale: boolean;
+  provider?: string;
+  model?: string;
+  promptVersion?: string;
+  workflowVersion?: string;
+  priorityPolicyVersion?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  inputTruncated?: boolean;
+  result?: TriageResult;
+  priority?: Priority;
+  priorityReasons?: string[];
+  error?: { code: string; message: string };
+}
 export type ConversationPriority = Priority | "untriaged";
 export type ConversationStatus =
   | "new"
@@ -35,7 +56,7 @@ export interface ConversationListItem {
   source?: "mock" | "gmail" | "whatsapp";
   providerLabel?: string;
   integrationAccountId?: string;
-  analysisState?: "simulated" | "pending";
+  analysisState?: AnalysisState;
   aiState: "unanalyzed" | "draft_ready" | "needs_review" | "human_only" | "auto_eligible";
   slaRisk: "none" | "warning" | "breach";
   updatedAt: string;
@@ -87,7 +108,8 @@ export interface ConversationDetail {
   providerLabel?: string;
   integrationAccountId?: string;
   providerConversationId?: string;
-  analysisState?: "simulated" | "pending";
+  analysisState?: AnalysisState;
+  analysis?: ConversationAnalysis;
   replyMode?: "mock" | "gmail_real" | "unavailable";
   summary: string;
   triageSignals: TriageSignal[];

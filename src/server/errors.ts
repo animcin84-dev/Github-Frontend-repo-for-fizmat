@@ -13,6 +13,7 @@ export type SupportErrorCode =
   | "validation_failed"
   | "sync_locked"
   | "not_found"
+  | "analysis_failed"
   | "unknown";
 
 export class SupportError extends Error {

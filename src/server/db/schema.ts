@@ -1,4 +1,7 @@
 import type { NormalizedAddress } from "@/server/integrations/types";
+import type { TriageResult } from "@/server/analysis/contracts";
+import type { Priority } from "@/lib/domain";
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -112,6 +115,34 @@ export const messages = pgTable(
     index("message_conversation_time_idx").on(table.conversationId, table.createdAt),
   ],
 );
+
+export const conversationAnalyses = pgTable("conversation_analyses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  conversationId: uuid("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  status: text("status").$type<"pending" | "running" | "completed" | "failed">().notNull().default("pending"),
+  provider: text("provider").notNull(),
+  model: text("model").notNull(),
+  providerResponseId: text("provider_response_id"),
+  promptVersion: text("prompt_version").notNull(),
+  workflowVersion: text("workflow_version").notNull(),
+  sourceHash: text("source_hash").notNull(),
+  inputMessageIds: jsonb("input_message_ids").$type<string[]>().notNull(),
+  inputTruncated: boolean("input_truncated").notNull().default(false),
+  result: jsonb("result").$type<TriageResult>(),
+  priority: text("priority").$type<Priority>(),
+  priorityReasons: jsonb("priority_reasons").$type<string[]>().notNull().default([]),
+  priorityPolicyVersion: text("priority_policy_version"),
+  errorCode: text("error_code"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("analysis_conversation_created_idx").on(table.conversationId, table.createdAt),
+  uniqueIndex("analysis_active_conversation_uq").on(table.conversationId)
+    .where(sql`${table.status} in ('pending', 'running')`),
+]);
 
 export const attachments = pgTable(
   "attachments",
