@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Maximize2, Minimize2 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { createContext, useContext, useEffect, useId, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const WorkspacePanelContext = createContext<string | undefined>(undefined);
@@ -48,8 +48,23 @@ export function WorkspaceTabs({ items, active, onChange, label = "Workspace view
 
 export function OperationalWorkspace({ master, detail, tabs, title, className, detailKey }: {master:ReactNode;detail:ReactNode;tabs?:ReactNode;title?:string;className?:string;detailKey?:string}) {
   const panelId = useId();
+  const workspace = useRef<HTMLElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const previousScroll = useRef(0);
+  const [expanded, setExpanded] = useState(false);
   const reduced = useReducedMotion();
+  useEffect(() => {
+    if (expanded) workspace.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [expanded]);
+  const toggleExpanded = () => {
+    if (expanded) {
+      setExpanded(false);
+      requestAnimationFrame(() => window.scrollTo({ top: previousScroll.current, behavior: "instant" }));
+    } else {
+      previousScroll.current = window.scrollY;
+      setExpanded(true);
+    }
+  };
   useEffect(() => {
     if (reduced || !detailKey) return;
     // Animate the selected identity without remounting the pane or moving its action band.
@@ -57,7 +72,12 @@ export function OperationalWorkspace({ master, detail, tabs, title, className, d
     const animation = header?.animate([{ opacity: .65, transform: "translateX(4px)" }, { opacity: 1, transform: "translateX(0)" }], { duration: 200, easing: "cubic-bezier(.22,1,.36,1)" });
     return () => animation?.cancel();
   }, [detailKey, reduced]);
-  return <WorkspacePanelContext.Provider value={panelId}><section className={cn("si-operational-workspace", className)} aria-label={title ?? "Operational workspace"}>{tabs ? <div className="si-workspace-notch">{tabs}</div> : null}<div className="si-master-pane">{title ? <div className="si-pane-heading">{title}<SlidersHorizontal size={14} aria-hidden="true" /></div> : null}{master}</div><div ref={panel} id={panelId} role={tabs ? "tabpanel" : undefined} aria-label={tabs ? `${title ?? "Workspace"} details` : undefined} className="si-detail-pane">{detail}</div></section></WorkspacePanelContext.Provider>;
+  return <WorkspacePanelContext.Provider value={panelId}><section ref={workspace} className={cn("si-operational-workspace", expanded && "is-expanded", className)} aria-label={title ?? "Operational workspace"} onKeyDown={(event) => {
+    if (event.key === "Escape" && expanded && !(event.target instanceof Element && event.target.closest('[role="dialog"]'))) {
+      event.preventDefault();
+      toggleExpanded();
+    }
+  }}>{tabs ? <div className="si-workspace-notch">{tabs}</div> : null}<div className="si-master-pane"><div className="si-pane-heading"><span>{title ?? "Workspace"}</span><button type="button" className="si-workspace-expand" aria-label={expanded ? "Minimize workspace" : "Expand workspace"} aria-pressed={expanded} title={expanded ? "Minimize workspace · Esc" : "Expand workspace"} onClick={toggleExpanded}>{expanded ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}<span>{expanded ? "Minimize" : "Expand"}</span></button></div>{master}</div><div ref={panel} id={panelId} role={tabs ? "tabpanel" : undefined} aria-label={tabs ? `${title ?? "Workspace"} details` : undefined} className="si-detail-pane">{detail}</div></section></WorkspacePanelContext.Provider>;
 }
 
 export function DetailBand({ metrics, action }: {metrics:ReferenceMetric[];action?:ReactNode}) {

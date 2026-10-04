@@ -39,13 +39,13 @@
 
   --si-shadow-macro: 0 1px 0 rgba(255,255,255,.72) inset, 0 10px 28px rgba(76,104,137,.045);
   --si-shadow-control: 0 3px 10px rgba(29,40,52,.07);
-  --si-shadow-workspace: 0 20px 34px rgba(37,54,72,.08), 0 1px 0 rgba(255,255,255,.06) inset;
+  --si-shadow-workspace: 0 24px 54px rgba(26,43,55,.18), 0 1px 0 rgba(224,240,250,.18) inset;
 
   --si-gradient-app: radial-gradient(900px 360px at 42% -10%, rgba(255,255,255,.88), transparent 70%), linear-gradient(135deg, #f4f7fa 0%, #e8eff8 48%, #f4f7fa 100%);
   --si-gradient-summary: linear-gradient(145deg, #f7fafd 0%, #e6edf5 55%, #dde9f6 100%);
   --si-gradient-blue: linear-gradient(145deg, #e8eff8 0%, #ccd9e8 100%);
-  --si-gradient-steel: linear-gradient(145deg, #9eb3c1 0%, #819bad 100%);
-  --si-gradient-dark: linear-gradient(145deg, #3a3b3c 0%, #2b2c2d 58%, #222426 100%);
+  --si-gradient-steel: radial-gradient(ellipse at 100% 0%, #eaf4fa30, transparent 60%), linear-gradient(145deg, #b2c4ce 0%, #9aafbd 52%, #879fac 100%);
+  --si-gradient-dark: radial-gradient(ellipse at 0% 0%, #91b9cf26, transparent 52%), radial-gradient(ellipse at 100% 100%, #ddf7360a, transparent 48%), linear-gradient(125deg, #34414a 0%, #263138 38%, #1e272d 70%, #192024 100%);
 }
 
 @font-face {font-family:"SI Geist";src:url("/fonts/geist-latin.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;}
@@ -347,3 +347,46 @@ button {cursor:pointer;} button:disabled {cursor:default;}
 .si-quality-diagnostics .h-\[280px\] { height:128px; }
 
 .si-overview-context,.si-thread-context,.si-thread-messages { scrollbar-width:thin; scrollbar-color:#2b414f50 transparent; }
+
+/* Larger working surfaces with a layered graphite / brushed-steel finish. */
+.si-operational-workspace {
+  border:1px solid #d8edf324;
+  scroll-margin-top:12px;
+}
+.si-master-pane { padding-right:6px; }
+.si-pane-heading { justify-content:flex-start; gap:12px; }
+.si-workspace-expand {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  height:28px; padding:0 9px; flex:none; border-radius:999px;
+  border:1px solid #e4f2f32c; background:linear-gradient(135deg,#ffffff12,#ffffff05);
+  color:#e8f2f5; font-size:10px; transition:background 120ms,border-color 120ms;
+}
+.si-workspace-expand:hover { background:#ffffff20; border-color:#e4f2f35c; }
+.si-workspace-expand[aria-pressed="true"] { background:var(--si-lime); border-color:transparent; color:#253018; }
+.si-detail-pane {
+  border:1px solid #eef8fd3b;
+  box-shadow:0 1px 0 #f3fbff3d inset,0 12px 26px #081b2426;
+}
+.si-detail-tile { background:linear-gradient(135deg,#f8fcff29,#f8fcff0d); border-color:#f4fbff26; }
+.si-detail-band { background:linear-gradient(115deg,#eff8fd35,#e5f2f924); border:1px solid #f6fcff1c; }
+.si-reference-row:not(.is-selected),.si-inbox-row:not(.is-selected) {
+  background:linear-gradient(110deg,#ffffff09,#ffffff03); border-color:#d9ecf211;
+}
+.si-reference-row:not(.is-selected):hover,.si-inbox-row:not(.is-selected):hover {
+  background:linear-gradient(110deg,#e2f1f01a,#e2f1f009); border-color:#d9ecf22d;
+}
+.si-reference-row.is-selected,.si-inbox-row.is-selected { border-color:#f1fbff66; box-shadow:0 1px 0 #ffffff42 inset,0 5px 16px #081b2417; }
+.si-thread-context { background:linear-gradient(155deg,#eff8ff16,#ffffff05); }
+@media (min-width:768px) {
+  .si-shell { max-width:2160px; padding-inline:18px; }
+  .si-operational-workspace,.si-route-workspace,.si-overview-workspace {
+    height:max(680px,calc(100dvh - 286px)); min-height:680px; padding:10px; gap:10px;
+  }
+  .si-inbox-workspace { height:max(720px,calc(100dvh - 260px)); min-height:720px; }
+  .si-operational-workspace.is-expanded { height:calc(100dvh - 28px); min-height:560px; }
+  .si-shell:has(.si-operational-workspace.is-expanded) { max-width:none; padding-inline:12px; }
+}
+@media (max-width:767px) {
+  .si-workspace-expand { display:none; }
+  .si-master-pane { padding-right:0; }
+}

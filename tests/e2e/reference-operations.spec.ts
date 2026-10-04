@@ -133,6 +133,41 @@ test("@a11y selected quality severity stays readable on the steel surface", asyn
   expect(results.violations).toEqual([]);
 });
 
+test("all operator workspaces expand to the viewport and restore their selection with Escape", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const [route, title] of routes) {
+    await test.step(title, async () => {
+      await page.goto(route);
+      await expect(page.getByRole("heading", { name: title, exact: true, level: 1 })).toBeVisible();
+      const workspace = page.locator(".si-operational-workspace");
+      const heading = workspace.locator(".si-detail-pane").getByRole("heading", { level: 2 }).first();
+      await expect(heading).toBeVisible();
+      const selectedTitle = await heading.textContent();
+      const before = await workspace.boundingBox();
+      expect(before!.height).toBeGreaterThanOrEqual(680);
+      const expandControl = workspace.getByRole("button", { name: "Expand workspace", exact: true });
+      const controlBox = await expandControl.boundingBox();
+      const tabsBox = await workspace.locator(".si-workspace-notch").boundingBox();
+      expect(controlBox!.x + controlBox!.width).toBeLessThanOrEqual(tabsBox!.x);
+      await expandControl.click();
+      const minimize = workspace.getByRole("button", { name: "Minimize workspace", exact: true });
+      await expect(minimize).toBeFocused();
+      await expect(minimize).toHaveAttribute("aria-pressed", "true");
+      await expect.poll(async () => (await workspace.boundingBox())!.y).toBeLessThanOrEqual(16);
+      const expanded = await workspace.boundingBox();
+      expect(expanded!.height).toBeGreaterThanOrEqual(860);
+      expect(expanded!.y + expanded!.height).toBeLessThanOrEqual(900);
+      await expect(heading).toHaveText(selectedTitle!);
+      await page.keyboard.press("Escape");
+      const expand = workspace.getByRole("button", { name: "Expand workspace", exact: true });
+      await expect(expand).toBeFocused();
+      await expect(expand).toHaveAttribute("aria-pressed", "false");
+      await expect.poll(async () => Math.abs((await workspace.boundingBox())!.height - before!.height)).toBeLessThanOrEqual(1);
+      await expect(heading).toHaveText(selectedTitle!);
+    });
+  }
+});
+
 test("source selection updates the detail panel and survives reload", async ({ page }) => {
   await page.goto("/knowledge?tab=sources&source=ks-payment-auth");
   const workspace = page.getByRole("region", { name: "Knowledge documents", exact: true });
