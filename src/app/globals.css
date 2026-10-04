@@ -391,3 +391,58 @@ button {cursor:pointer;} button:disabled {cursor:default;}
   .si-workspace-expand { display:none; }
   .si-master-pane { padding-right:0; }
 }
+
+/* Restaurant workspace: local examples share the existing steel / graphite system. */
+.si-restaurant-identity {display:flex;align-items:center;gap:10px;padding:10px 10px 18px;}
+.si-restaurant-mark {display:grid;place-items:center;width:40px;height:40px;border:1px solid #e7f3f42b;border-radius:14px;background:linear-gradient(135deg,#e4f8dd1f,#91b9cf12);flex:none;}
+.si-restaurant-identity strong,.si-restaurant-identity span:not(.si-restaurant-mark) {display:block;}
+.si-restaurant-identity strong {font-size:14px;font-weight:500;}
+.si-restaurant-identity div>span {font-size:10px;color:var(--muted-foreground);margin-top:3px;}
+.si-restaurant-workspace .si-pane-heading>span {min-width:0;}
+.si-restaurant-workspace .si-reference-row {min-height:72px;}
+.si-restaurant-workspace .si-reference-row.is-selected {--muted-foreground:#2a4051;}
+.si-restaurant-row-time {display:flex;align-items:flex-end;flex-direction:column;gap:9px;font-size:10px;flex:none;}
+.si-restaurant-unread {width:6px;height:6px;border-radius:50%;background:var(--si-lime);box-shadow:0 0 0 3px #ddf73616;}
+.si-restaurant-chat-layout {display:grid;grid-template-columns:minmax(0,1.7fr) minmax(210px,1fr);gap:16px;align-items:start;}
+.si-restaurant-chat,.si-restaurant-profile {min-width:0;}
+.si-restaurant-section-heading {display:flex;align-items:center;gap:7px;font-size:11px;padding:4px 0 12px;}
+.si-restaurant-section-heading h3 {font-weight:600;}
+.si-restaurant-section-heading>span {margin-left:auto;font-size:10px;color:var(--muted-foreground);}
+.si-restaurant-messages {display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid #f5fcff30;border-radius:18px;background:linear-gradient(145deg,#f9ffff1f,#3153630a);}
+.si-restaurant-message {max-width:92%;align-self:flex-start;min-width:0;border:1px solid #f7fcff40;border-radius:16px 16px 16px 4px;background:#f4fafc6b;padding:10px 12px;}
+.si-restaurant-message.is-outbound {align-self:flex-end;background:#e4f1e26b;border-radius:16px 16px 4px 16px;}
+.si-restaurant-message p {font-size:12px;line-height:1.6;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere;}
+.si-restaurant-message time {display:block;text-align:right;font-size:9px;color:var(--muted-foreground);margin-top:5px;}
+.si-restaurant-composer {margin-top:12px;padding:12px;border:1px solid #f7fcff45;background:#f5fafb2b;border-radius:18px;}
+.si-restaurant-composer textarea {display:block;width:100%;margin-top:6px;padding:9px;border:1px solid var(--border);border-radius:12px;background:#f8fcff4a;color:var(--foreground);resize:vertical;font-size:12px;line-height:1.5;min-height:84px;}
+.si-restaurant-composer textarea::placeholder {color:var(--muted-foreground);opacity:1;}
+.si-restaurant-composer-footer {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
+.si-restaurant-composer-footer>span {font-size:10px;color:var(--muted-foreground);}
+.si-restaurant-composer-footer button {display:flex;align-items:center;gap:6px;flex:none;}
+.si-restaurant-composer-footer button:disabled {opacity:.55;}
+.si-restaurant-profile {padding:14px;border:1px solid #f6fcff35;border-radius:18px;background:linear-gradient(135deg,#eef9f92e,#e6f1f71c);}
+.si-restaurant-profile h4 {font-size:15px;font-weight:500;letter-spacing:-.02em;}
+.si-restaurant-profile p {font-size:11px;line-height:1.6;margin-top:4px;}
+.si-restaurant-hours {display:flex;align-items:center;gap:7px;font-size:12px;margin-top:12px;}
+.si-restaurant-connection {display:flex;align-items:flex-start;flex-direction:column;gap:7px;padding-top:14px;margin-top:14px;border-top:1px solid var(--border);font-size:12px;}
+.si-restaurant-connection strong {font-weight:500;}
+.si-restaurant-menu {margin-top:8px;}
+.si-restaurant-menu li {display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:12px 0;border-top:1px solid var(--border);font-size:11px;}
+.si-restaurant-menu li strong {font-weight:500;display:block;}
+.si-restaurant-menu li div>span {display:block;font-size:10px;color:var(--muted-foreground);margin-top:4px;}
+.si-restaurant-menu li>span {white-space:nowrap;font-variant-numeric:tabular-nums;}
+@media (min-width:768px) and (max-width:1100px) {
+  .si-topbar {grid-template-columns:auto minmax(0,1fr) auto;gap:10px;}
+  .si-top-nav {justify-self:center;gap:1px;}
+  .si-nav-link {padding:7px 9px;font-size:10px;}
+}
+@media (max-width:1100px) {.si-restaurant-chat-layout {grid-template-columns:minmax(0,1fr);}}
+@media (max-width:767px) {
+  .si-restaurant-page .si-header-actions {flex-wrap:wrap;justify-content:flex-end;}
+  .si-restaurant-workspace .si-master-pane {max-height:370px;}
+  .si-restaurant-workspace .si-detail-header {flex-wrap:wrap;}
+  .si-restaurant-workspace .si-detail-grid {grid-template-columns:minmax(0,1fr);}
+  .si-restaurant-workspace .si-detail-tile {min-height:70px;}
+  .si-restaurant-workspace .si-detail-scroll {max-height:600px;}
+  .si-restaurant-composer-footer {align-items:flex-start;}
+}

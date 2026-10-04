@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BrainCircuit, Inbox, LayoutDashboard, Library, Menu, Plug, Search, Settings, ShieldCheck, Sun } from "lucide-react";
+import { Activity, BrainCircuit, Inbox, LayoutDashboard, Library, Menu, MessageSquareText, Plug, Search, Settings, ShieldCheck, Sun } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { CommandPalette } from "@/components/app-shell/command-palette";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/whatsapp", label: "WhatsApp", icon: MessageSquareText },
   { href: "/intelligence", label: "Intelligence", icon: BrainCircuit },
   { href: "/knowledge", label: "Knowledge", icon: Library },
   { href: "/ai-quality", label: "AI Quality", icon: Activity },
@@ -29,10 +30,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex items-center gap-2">
         <Link href="/overview" className="si-brand" aria-label="Support workspace home"><Sun aria-hidden="true" /><span>support intelligence</span></Link>
       </div>
-      <nav className="si-top-nav" aria-label="Primary navigation">{nav.slice(0, 6).map(({ href, label }) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={cn("si-nav-link", isActive(href) && "is-active")}>{isActive(href) ? <motion.div className="si-active-pill" layoutId="primary-navigation" transition={{ duration: reduced ? 0 : .18, ease: [.22, 1, .36, 1] }} /> : null}<span>{label}</span></Link>)}</nav>
+      <nav className="si-top-nav" aria-label="Primary navigation">{nav.slice(0, 7).map(({ href, label }) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={cn("si-nav-link", isActive(href) && "is-active")}>{isActive(href) ? <motion.div className="si-active-pill" layoutId="primary-navigation" transition={{ duration: reduced ? 0 : .18, ease: [.22, 1, .36, 1] }} /> : null}<span>{label}</span></Link>)}</nav>
       <div className="si-top-utilities">
         <button className="si-circle-control" aria-label="Open command palette" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}><Search size={14} aria-hidden="true" /></button>
-        {nav.slice(6).map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-label={label} title={label} className="si-circle-control" aria-current={isActive(href) ? "page" : undefined}><Icon size={14} aria-hidden="true" /></Link>)}
+        {nav.slice(7).map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-label={label} title={label} className="si-circle-control" aria-current={isActive(href) ? "page" : undefined}><Icon size={14} aria-hidden="true" /></Link>)}
         <ThemeToggle />
       </div>
         <details className="si-mobile-navigation" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.currentTarget.removeAttribute("open"); event.currentTarget.querySelector("summary")?.focus(); } }}>

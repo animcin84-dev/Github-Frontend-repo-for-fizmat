@@ -8,6 +8,7 @@ import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 const commands = [
   ["Overview", "/overview"],
   ["Inbox", "/inbox"],
+  ["WhatsApp · Restaurant", "/whatsapp"],
   ["Intelligence", "/intelligence"],
   ["Knowledge", "/knowledge"],
   ["AI Quality", "/ai-quality"],
