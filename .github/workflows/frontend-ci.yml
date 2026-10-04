@@ -2,7 +2,7 @@ name: frontend-ci
 
 on:
   push:
-    branches: [main, "feat/phase-d-ai-quality", "feat/phase-e-controlled-automation", "feat/phase-f2-real-gmail-data-plane", "feat/hackathon-whatsapp"]
+    branches: [main, "feat/phase-d-ai-quality", "feat/phase-e-controlled-automation", "feat/phase-f2-real-gmail-data-plane", "feat/hackathon-whatsapp", "feat/p2a-real-ai-triage"]
   pull_request:
     branches: [main]
 
