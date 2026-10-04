@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import type { ConversationAnalysis } from "@/lib/domain";
 import { triageResultSchema } from "@/server/analysis/contracts";
-import { computeTriagePriority } from "@/server/analysis/priority";
-import { DEFAULT_OPENAI_MODEL, getTriageProvider, TRIAGE_PROMPT_VERSION, type TriageInput, type TriageProvider } from "@/server/analysis/provider";
+import { TRIAGE_PRIORITY_VERSION, computeTriagePriority } from "@/server/analysis/priority";
+import { getProviderAvailability, getTriageConfigurationVersion, ProviderError, getTriageProvider, TRIAGE_PROMPT_VERSION, type TriageInput, type TriageProvider } from "@/server/analysis/provider";
 import { SupportError } from "@/server/errors";
 import { serverLog } from "@/server/logging";
 import { createPendingAnalysis, expireInterruptedAnalyses, getInboundAnalysisMessages, getLatestAnalyses, getLatestAnalysis, updateAnalysis, type AnalysisRow } from "@/server/repositories/analyses";
@@ -12,11 +12,7 @@ export const TRIAGE_WORKFLOW_VERSION = "triage-workflow-v1";
 
 export function getAnalysisAvailability() {
   const inCI = Boolean(process.env.CI) && process.env.CI !== "false" && process.env.CI !== "0";
-  return {
-    configured: !inCI && (process.env.AI_PROVIDER?.trim() || "openai") === "openai" && Boolean(process.env.OPENAI_API_KEY?.trim()),
-    provider: "openai", model: process.env.OPENAI_MODEL?.trim() || DEFAULT_OPENAI_MODEL,
-    requiredKey: "OPENAI_API_KEY",
-  };
+  return { ...getProviderAvailability(), configured: !inCI && getProviderAvailability().configured };
 }
 
 function sourceSnapshot(subject: string, rows: Awaited<ReturnType<typeof getInboundAnalysisMessages>>) {
@@ -48,11 +44,15 @@ async function snapshot(conversationId: string) {
 
 function dto(row: AnalysisRow | undefined, sourceHash: string): ConversationAnalysis {
   const availability = getAnalysisAvailability();
-  if (!row) return { status: "pending", configured: availability.configured, stale: false };
+  if (!row) return { status: "pending", configured: availability.configured, stale: false, requiredKey: availability.requiredKey, primaryProvider: availability.provider };
   const stale = row.sourceHash !== sourceHash;
   return {
     id: row.id, status: row.status, configured: availability.configured, stale,
     provider: row.provider, model: row.model, promptVersion: row.promptVersion,
+    requiredKey: availability.requiredKey, primaryProvider: availability.provider,
+    configurationVersion: row.configurationVersion, providerResponseId: row.providerResponseId ?? undefined,
+    latencyMs: row.latencyMs ?? undefined, usage: row.usage, providerAttempts: row.providerAttempts,
+    inputMessageIds: row.inputMessageIds, sourceHash: row.sourceHash,
     workflowVersion: row.workflowVersion, priorityPolicyVersion: row.priorityPolicyVersion ?? undefined,
     inputTruncated: row.inputTruncated,
     startedAt: row.startedAt?.toISOString(), finishedAt: row.finishedAt?.toISOString(),
@@ -97,15 +97,17 @@ export async function analyzeConversation(conversationId: string, providerOverri
   }
   // Missing credentials stop here. Never replace the real provider with fixtures.
   const provider = providerOverride ?? getTriageProvider();
+  const configurationVersion = providerOverride ? `${provider.id}:${provider.model}` : getTriageConfigurationVersion();
+  const requested = providerOverride ? { provider: provider.id, model: provider.model } : getAnalysisAvailability();
   await expireInterruptedAnalyses(conversationId);
   const latest = await getLatestAnalysis(conversationId);
   if (latest?.status === "completed" && latest.sourceHash === source.sourceHash &&
-      latest.provider === provider.id && latest.model === provider.model &&
+      latest.configurationVersion === configurationVersion && latest.priorityPolicyVersion === TRIAGE_PRIORITY_VERSION &&
       latest.promptVersion === TRIAGE_PROMPT_VERSION && latest.workflowVersion === TRIAGE_WORKFLOW_VERSION) {
     return dto(latest, source.sourceHash);
   }
   const run = await createPendingAnalysis({
-    conversationId, provider: provider.id, model: provider.model,
+    conversationId, provider: requested.provider, model: requested.model, configurationVersion,
     promptVersion: TRIAGE_PROMPT_VERSION, workflowVersion: TRIAGE_WORKFLOW_VERSION,
     sourceHash: source.sourceHash, inputMessageIds: source.input.messages.map((item) => item.id),
     inputTruncated: source.inputTruncated,
@@ -122,6 +124,8 @@ export async function analyzeConversation(conversationId: string, providerOverri
       status: "completed", result: parsed.data, priority: priority.priority,
       priorityReasons: priority.reasons, priorityPolicyVersion: priority.version,
       providerResponseId: response.providerResponseId ?? null,
+      provider: response.provider ?? requested.provider, model: response.model ?? requested.model,
+      latencyMs: response.latencyMs ?? null, usage: response.usage ?? {}, providerAttempts: response.attempts ?? [],
       finishedAt: new Date(),
     });
     if (!completed) throw new SupportError("validation_failed", "Analysis expired before completion. Run it again.", { status: 409 });
@@ -129,6 +133,16 @@ export async function analyzeConversation(conversationId: string, providerOverri
     const current = await snapshot(conversationId);
     return dto(completed, current.sourceHash);
   } catch (error) {
+    if (error instanceof ProviderError) {
+      // Reconstruct the controlled message: never trust a provider exception's text.
+      const safe = new ProviderError(error.category, { transient: error.transient });
+      await updateAnalysis(run.id, {
+        status: "failed", errorCode: `analysis_provider_${error.category}`, errorMessage: safe.message,
+        provider: error.provider ?? requested.provider, model: error.model ?? requested.model,
+        providerAttempts: error.attempts, finishedAt: new Date(),
+      });
+      throw new SupportError("analysis_failed", safe.message, { status: 502, retryable: error.transient });
+    }
     const invalid = error instanceof SupportError && error.code === "validation_failed";
     const code = invalid ? "analysis_invalid_output" : "analysis_failed";
     const message = invalid ? "AI analysis could not produce a valid triage result. Try again." : "AI provider did not complete analysis. Try again.";

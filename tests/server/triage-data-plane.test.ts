@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { GET } from "@/app/api/conversations/[conversationId]/analysis/route";
 import { POST } from "@/app/api/conversations/[conversationId]/analyze/route";
-import type { TriageInput, TriageProvider, TriageResult } from "@/server/analysis/contracts";
+import type { ProviderAttempt, TriageInput, TriageProvider, TriageResult } from "@/server/analysis/contracts";
+import { ProviderError } from "@/server/analysis/provider";
 import { closeDatabase, getDb, getSqlClient } from "@/server/db/client";
 import { conversationAnalyses, integrationAccounts, messages, outboundOperations } from "@/server/db/schema";
 import { normalizeGmailMessage } from "@/server/integrations/gmail/parser";
@@ -22,6 +23,18 @@ const billingResult: TriageResult = {
 function fakeProvider(result: unknown = billingResult, model = "fake-triage") {
   const analyze = vi.fn(async (_input: TriageInput) => ({ result, providerResponseId: "synthetic-response-id" }));
   return { id: "fake", model, analyze } satisfies TriageProvider;
+}
+
+function fakeFallbackProvider(configuration = "synthetic-chain-v1", servedModel = "gemini-2.5-flash") {
+  const attempts: ProviderAttempt[] = [
+    { provider: "groq", model: "openai/gpt-oss-120b", status: "failed", latencyMs: 7, errorCode: "rate_limited" },
+    { provider: "gemini", model: servedModel, status: "completed", latencyMs: 17 },
+  ];
+  const analyze = vi.fn(async (_input: TriageInput) => ({
+    result: billingResult, provider: "gemini", model: servedModel, providerResponseId: "synthetic-gemini-response",
+    latencyMs: 24, usage: { inputTokens: 42, outputTokens: 19 }, attempts,
+  }));
+  return { id: "orchestrator", model: configuration, analyze } satisfies TriageProvider;
 }
 
 async function seedGmail() {
@@ -65,9 +78,9 @@ beforeAll(() => {
 
 beforeEach(async () => {
   vi.stubEnv("SUPPORT_DATA_MODE", "database");
-  vi.stubEnv("AI_PROVIDER", "openai");
-  vi.stubEnv("OPENAI_API_KEY", "");
-  vi.stubEnv("OPENAI_MODEL", "");
+  for (const name of ["AI_PRIMARY_PROVIDER", "GROQ_API_KEY", "GEMINI_API_KEY", "HF_TOKEN", "GROQ_MODEL", "GEMINI_MODEL", "HF_MODEL", "AI_PROVIDER", "OPENAI_API_KEY", "OPENAI_MODEL"]) {
+    vi.stubEnv(name, "");
+  }
   vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Database regression tests must not call external APIs"); }));
   await getSqlClient().unsafe("TRUNCATE TABLE conversation_analyses, pubsub_notifications, sync_locks, outbound_operations, attachments, messages, conversations, participants, sync_runs, integration_accounts RESTART IDENTITY CASCADE");
 });
@@ -115,6 +128,16 @@ describe("persisted triage facts and deterministic priority", () => {
     expect(recovered).toMatchObject({ id: completed.id, status: "completed", stale: false, result: billingResult, priority: "high", promptVersion: completed.promptVersion, workflowVersion: completed.workflowVersion });
   });
 
+  test("financial risk with a blocked customer is High for refund requests and permits an unknown requested action", async () => {
+    const { conversationId } = await seedConversation();
+    const facts = { ...billingResult, intent: "refund_request", requestedAction: null };
+    const completed = await analyzeConversation(conversationId, fakeProvider(facts));
+    expect(completed).toMatchObject({ status: "completed", priority: "high", result: { intent: "refund_request", requestedAction: null } });
+    const [run] = await getDb().select().from(conversationAnalyses);
+    expect(run.priority).toBe("high");
+    expect(run.result?.requestedAction).toBeNull();
+  });
+
   test("a repeated run of unchanged input and versions reuses the persisted result", async () => {
     const { conversationId } = await seedConversation();
     const provider = fakeProvider();
@@ -134,6 +157,44 @@ describe("persisted triage facts and deterministic priority", () => {
     expect(second.model).toBe("fake-triage-v2");
     expect(changed.analyze).toHaveBeenCalledOnce();
     expect(await getDb().select().from(conversationAnalyses)).toHaveLength(2);
+  });
+
+  test("actual fallback provider metadata persists and unchanged orchestration configuration reuses the result", async () => {
+    const { conversationId, messageId } = await seedConversation();
+    const orchestrator = fakeFallbackProvider();
+    const first = await analyzeConversation(conversationId, orchestrator);
+    const metadata = {
+      provider: "gemini", model: "gemini-2.5-flash", providerResponseId: "synthetic-gemini-response",
+      configurationVersion: "orchestrator:synthetic-chain-v1", latencyMs: 24,
+      usage: { inputTokens: 42, outputTokens: 19 }, inputMessageIds: [messageId],
+      providerAttempts: [
+        { provider: "groq", model: "openai/gpt-oss-120b", status: "failed", latencyMs: 7, errorCode: "rate_limited" },
+        { provider: "gemini", model: "gemini-2.5-flash", status: "completed", latencyMs: 17 },
+      ],
+    };
+    expect(first).toMatchObject({ status: "completed", ...metadata });
+    const [row] = await getDb().select().from(conversationAnalyses);
+    expect(row).toMatchObject(metadata);
+    expect(first.sourceHash).toBe(row.sourceHash);
+    const second = await analyzeConversation(conversationId, orchestrator);
+    expect(second).toMatchObject({ id: first.id, ...metadata });
+    expect(orchestrator.analyze).toHaveBeenCalledOnce();
+    expect(await getDb().select().from(conversationAnalyses)).toHaveLength(1);
+    await closeDatabase();
+    expect(await getConversationAnalysis(conversationId)).toMatchObject({ id: first.id, ...metadata });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  test("an orchestration model configuration change permits fresh inference after a fallback completion", async () => {
+    const { conversationId } = await seedConversation();
+    const first = await analyzeConversation(conversationId, fakeFallbackProvider());
+    const changed = fakeFallbackProvider("synthetic-chain-v2", "synthetic-gemini-model-v2");
+    const second = await analyzeConversation(conversationId, changed);
+    expect(second.id).not.toBe(first.id);
+    expect(second).toMatchObject({ provider: "gemini", model: "synthetic-gemini-model-v2", configurationVersion: "orchestrator:synthetic-chain-v2" });
+    expect(changed.analyze).toHaveBeenCalledOnce();
+    expect(await getDb().select().from(conversationAnalyses)).toHaveLength(2);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   test("new inbound messages invalidate old facts until an explicit new analysis", async () => {
@@ -255,6 +316,30 @@ describe("triage lifecycle, concurrency and failure recovery", () => {
     expect(await getDb().select().from(outboundOperations)).toEqual([]);
   });
 
+  test("authentication failures retain a safe category without exposing provider secrets or encouraging automatic retries", async () => {
+    const { conversationId } = await seedConversation();
+    const privateMessage = "provider 401 sk-synthetic-private-key private-customer@example.test";
+    const providerError = new ProviderError("authentication", { provider: "groq", model: "openai/gpt-oss-120b", status: 401 });
+    providerError.message = privateMessage;
+    const analyze = vi.fn(async () => { throw providerError; });
+    const provider: TriageProvider = { id: "groq", model: "openai/gpt-oss-120b", analyze };
+    const failure = await analyzeConversation(conversationId, provider).catch((error: unknown) => error);
+    expect(failure).toMatchObject({ retryable: false });
+    expect(String(failure)).not.toContain("sk-synthetic");
+    expect(String(failure)).not.toContain("private-customer");
+    expect(analyze).toHaveBeenCalledOnce();
+    const [row] = await getDb().select().from(conversationAnalyses);
+    expect(row.status).toBe("failed");
+    expect(row.errorCode).toMatch(/authentication/);
+    expect(row.errorMessage).not.toContain("sk-synthetic");
+    expect(row.errorMessage).not.toContain("private-customer");
+    const dto = await getConversationAnalysis(conversationId);
+    expect(dto.error?.code).toMatch(/authentication/);
+    expect(JSON.stringify(dto)).not.toContain("sk-synthetic");
+    expect(await getDb().select().from(outboundOperations)).toEqual([]);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
   test("expired running rows survive a restart and are failed before an explicit retry", async () => {
     const { conversationId } = await seedConversation();
     const completed = await analyzeConversation(conversationId, fakeProvider());
@@ -301,18 +386,19 @@ describe("real triage boundaries and HTTP configuration errors", () => {
   test("availability exposes metadata only and a missing key never calls a provider or creates a run", async () => {
     const { conversationId } = await seedConversation();
     const availability = getAnalysisAvailability();
-    expect(availability).toMatchObject({ configured: false, provider: "openai", requiredKey: "OPENAI_API_KEY" });
+    expect(availability).toMatchObject({ configured: false, provider: "groq", requiredKey: "GROQ_API_KEY" });
     expect(availability).not.toHaveProperty("apiKey");
     const originalCi = process.env.CI;
     vi.stubEnv("CI", "false");
-    vi.stubEnv("OPENAI_API_KEY", "synthetic-availability-only-key");
+    vi.stubEnv("GROQ_API_KEY", "synthetic-availability-only-key");
     expect(getAnalysisAvailability().configured).toBe(true);
+    expect(JSON.stringify(getAnalysisAvailability())).not.toContain("synthetic-availability-only-key");
     for (const ciValue of ["1", "yes"]) {
       vi.stubEnv("CI", ciValue);
       expect(getAnalysisAvailability().configured).toBe(false);
     }
     vi.stubEnv("CI", originalCi ?? "");
-    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("GROQ_API_KEY", "");
     await expect(analyzeConversation(conversationId)).rejects.toMatchObject({ code: "configuration_missing", status: 503 });
     const response = await POST(analysisRequest(conversationId), routeContext(conversationId));
     expect(response.status).toBe(503);

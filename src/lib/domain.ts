@@ -1,4 +1,4 @@
-import type { TriageResult } from "@/server/analysis/contracts";
+import type { ProviderAttempt, TriageResult, TriageUsage } from "@/server/analysis/contracts";
 
 export type Priority = "low" | "medium" | "high" | "critical";
 export type AnalysisState = "simulated" | "pending" | "running" | "completed" | "failed";
@@ -9,6 +9,15 @@ export interface ConversationAnalysis {
   stale: boolean;
   provider?: string;
   model?: string;
+  requiredKey?: string;
+  primaryProvider?: string;
+  providerResponseId?: string;
+  configurationVersion?: string;
+  latencyMs?: number;
+  usage?: TriageUsage;
+  providerAttempts?: ProviderAttempt[];
+  inputMessageIds?: string[];
+  sourceHash?: string;
   promptVersion?: string;
   workflowVersion?: string;
   priorityPolicyVersion?: string;

@@ -1,5 +1,5 @@
 import type { NormalizedAddress } from "@/server/integrations/types";
-import type { TriageResult } from "@/server/analysis/contracts";
+import type { ProviderAttempt, TriageResult, TriageUsage } from "@/server/analysis/contracts";
 import type { Priority } from "@/lib/domain";
 import { sql } from "drizzle-orm";
 import {
@@ -123,6 +123,10 @@ export const conversationAnalyses = pgTable("conversation_analyses", {
   provider: text("provider").notNull(),
   model: text("model").notNull(),
   providerResponseId: text("provider_response_id"),
+  configurationVersion: text("configuration_version").notNull().default("legacy"),
+  latencyMs: integer("latency_ms"),
+  usage: jsonb("usage").$type<TriageUsage>().notNull().default({}),
+  providerAttempts: jsonb("provider_attempts").$type<ProviderAttempt[]>().notNull().default([]),
   promptVersion: text("prompt_version").notNull(),
   workflowVersion: text("workflow_version").notNull(),
   sourceHash: text("source_hash").notNull(),
