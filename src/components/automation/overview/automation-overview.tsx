@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { useQueryState } from "nuqs";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -39,8 +40,8 @@ function readinessTone(value: "strong" | "medium" | "weak" | "missing") {
   return value === "strong" ? "success" : value === "medium" ? "info" : "warning";
 }
 
-export function AutomationOverview({ data }: { data: WorkspaceData }) {
-  const [intent, setIntent] = useState("");
+export function AutomationOverview({ data, embedded = false }: { data: WorkspaceData; embedded?: boolean }) {
+  const [intent, setIntent] = useQueryState("intent", { defaultValue: "" });
   const [approvalId, setApprovalId] = useState("");
   const [secondStep, setSecondStep] = useState(false);
   const [approvalState, setApprovalState] = useState<Record<string, ApprovalRequest["status"]>>({});
@@ -73,6 +74,8 @@ export function AutomationOverview({ data }: { data: WorkspaceData }) {
 
   return (
     <div className="space-y-4">
+      {embedded && selectedExplanation ? <ReadinessInspector explanation={selectedExplanation} embedded onClose={() => setIntent(null)} /> : null}
+      {!embedded ? <>
       <Surface className="overflow-hidden">
         <div className="grid grid-cols-2 gap-y-3 py-3 sm:grid-cols-3 xl:grid-cols-6">
           <CompactStat label="Automation status" value="Limited live" note={`${controlledCount} controlled · ${approvalCount} approval · ${humanOnlyCount} human-only`} tone="success" />
@@ -175,6 +178,7 @@ export function AutomationOverview({ data }: { data: WorkspaceData }) {
         ) : null}
       </Surface>
 
+      </> : null}
       <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <Surface className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">

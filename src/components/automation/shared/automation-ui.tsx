@@ -55,11 +55,11 @@ export function StateMark({ state, children }: { state: "pass" | "warning" | "bl
   return <div className="flex items-start gap-2 text-xs"><Icon className={cn("mt-0.5 size-3.5 shrink-0", tone)} /><div>{children}</div></div>;
 }
 
-export function ReadinessInspector({ explanation, onClose }: { explanation: ReadinessExplanation; onClose: () => void }) {
+export function ReadinessInspector({ explanation, onClose, embedded = false }: { explanation: ReadinessExplanation; onClose: () => void; embedded?: boolean }) {
   return (
     <aside
       aria-label="Automation readiness details"
-      className="fixed inset-y-12 right-0 z-50 w-[min(96vw,430px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none"
+      className={embedded ? "si-inline-inspector" : "fixed inset-y-12 right-0 z-50 w-[min(96vw,430px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none"}
     >
       <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-1)] px-4 py-3">
         <div>

@@ -21,7 +21,7 @@ import { AuditLifecycle, DecisionBadge } from "@/components/automation/shared/au
 
 type WorkspaceData = Awaited<ReturnType<typeof getAutomationWorkspace>>;
 
-function AuditInspector({ event, data, close }: { event: AutomationAuditEvent; data: WorkspaceData; close: () => void }) {
+function AuditInspector({ event, data, close, embedded = false }: { event: AutomationAuditEvent; data: WorkspaceData; close: () => void; embedded?: boolean }) {
   const action = data.actions.find((item) => item.id === event.actionId);
   const reversible = action?.reversible ?? false;
   const failed = event.result === "failed";
@@ -29,7 +29,7 @@ function AuditInspector({ event, data, close }: { event: AutomationAuditEvent; d
   const [rollbackPreview, setRollbackPreview] = useState(false);
 
   return (
-    <aside aria-label="Automation audit details" className="fixed inset-y-12 right-0 z-50 w-[min(96vw,500px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none">
+    <aside aria-label="Automation audit details" className={embedded ? "si-inline-inspector" : "fixed inset-y-12 right-0 z-50 w-[min(96vw,500px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none"}>
       <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-1)] px-4 py-3">
         <div><div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">Append-only audit model</div><h2 className="mt-1 text-sm font-semibold">{action?.label ?? event.actionId} · {event.conversationId}</h2><div className="mt-2 flex flex-wrap gap-1.5"><DecisionBadge decision={event.decision} /><Badge tone={event.result === "succeeded" ? "success" : event.result === "failed" || event.result === "not_executed" ? "danger" : "warning"}>{event.result.replaceAll("_", " ")}</Badge></div></div>
         <button onClick={close} aria-label="Close audit inspector" className="grid size-7 place-items-center rounded-md hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button>
@@ -95,7 +95,7 @@ function AuditInspector({ event, data, close }: { event: AutomationAuditEvent; d
   );
 }
 
-export function AuditView({ data }: { data: WorkspaceData }) {
+export function AuditView({ data, embedded = false }: { data: WorkspaceData; embedded?: boolean }) {
   const [decision, setDecision] = useQueryState("decision", { defaultValue: "" });
   const [result, setResult] = useQueryState("result", { defaultValue: "" });
   const [auditId, setAuditId] = useQueryState("auditId", { defaultValue: "" });
@@ -105,6 +105,7 @@ export function AuditView({ data }: { data: WorkspaceData }) {
     [data.auditEvents, decision, result],
   );
   const selected = data.auditEvents.find((item) => item.id === auditId);
+  if (embedded) return selected ? <AuditInspector key={selected.id} event={selected} data={data} embedded close={() => setAuditId(null)} /> : <div className="si-empty-inset">Select an audit event to compare policy authorization with execution and verification.</div>;
 
   return (
     <div className="space-y-4">

@@ -209,3 +209,12 @@ button {cursor:pointer;} button:disabled {cursor:default;}
 .si-intelligence-workspace .si-reference-row.is-selected {--surface-1:#ffffff44;--surface-2:#ffffff55;--muted-foreground:#203d50;--warning:#5c3e13;--danger:#732720;--info:#123b57;--border:#ffffff30;}
 .si-intelligence-workspace .si-reference-row .si-circle-control {width:27px;height:27px;min-height:27px;color:inherit;}
 .si-intelligence-workspace .si-reference-row {gap:8px;min-height:64px;}
+.si-inline-inspector{width:100%;min-width:0;background:transparent;border:0;box-shadow:none}
+.si-inline-inspector>div:first-child{position:static;background:transparent;padding:8px 0 12px}
+.si-inline-inspector>div:last-child{padding:12px 0}
+.si-control-diagnostics .si-surface,.si-quality-diagnostics .si-surface{background:var(--surface-2);box-shadow:none;border-color:var(--border);border-radius:18px}
+.si-control-diagnostics [class*="xl:grid-cols-"],.si-control-diagnostics [class*="lg:grid-cols-"],.si-quality-diagnostics [class*="xl:grid-cols-"],.si-quality-diagnostics [class*="lg:grid-cols-"]{grid-template-columns:minmax(0,1fr)}
+.si-quality-diagnostics .h-\[280px\]{height:154px}
+.si-quality-workspace .si-reference-row.is-selected{--warning:#5c3e13;--danger:#732720;--info:#123b57;--success:#23583c;--muted-foreground:#203d50}
+.si-detail-scroll,.si-master-pane{scrollbar-width:thin;scrollbar-color:rgb(54 76 89 / .45) transparent}
+.si-master-pane{scrollbar-color:rgb(210 222 230 / .3) transparent}

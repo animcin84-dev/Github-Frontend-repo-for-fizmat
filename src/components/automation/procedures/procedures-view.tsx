@@ -49,13 +49,13 @@ function riskTone(risk: ActionDefinition["risk"]) {
     risk === "financial" || risk === "security_sensitive" || risk === "irreversible" ? "danger" : "neutral";
 }
 
-function ProcedureInspector({ procedure, data, close }: { procedure: AutomationProcedure; data: WorkspaceData; close: () => void }) {
+function ProcedureInspector({ procedure, data, close, embedded = false }: { procedure: AutomationProcedure; data: WorkspaceData; close: () => void; embedded?: boolean }) {
   const simulation = data.procedureSimulations.find((item) => item.procedureId === procedure.id);
   const rollout = data.rollouts.find((item) => item.id === procedure.rolloutId);
   const [simulated, setSimulated] = useState(false);
 
   return (
-    <aside aria-label="Automation procedure details" className="fixed inset-y-12 right-0 z-50 w-[min(96vw,520px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none">
+    <aside aria-label="Automation procedure details" className={embedded ? "si-inline-inspector" : "fixed inset-y-12 right-0 z-50 w-[min(96vw,520px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none"}>
       <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-1)] px-4 py-3">
         <div><div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">Procedure</div><h2 className="mt-1 text-sm font-semibold">{procedure.name}</h2><div className="mt-2 flex flex-wrap gap-1.5"><Badge>{procedure.intent}</Badge><Badge tone={procedure.status === "active" || procedure.status === "limited" ? "success" : procedure.status === "paused" ? "danger" : "warning"}>{procedure.status}</Badge></div></div>
         <button onClick={close} aria-label="Close procedure inspector" className="grid size-7 place-items-center rounded-md hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button>
@@ -187,19 +187,21 @@ function ExecutionPreview({ data }: { data: WorkspaceData }) {
   );
 }
 
-export function ProceduresView({ data }: { data: WorkspaceData }) {
+export function ProceduresView({ data, embedded = false }: { data: WorkspaceData; embedded?: boolean }) {
   const [procedureId, setProcedureId] = useQueryState("procedure", { defaultValue: "" });
   const selected = data.procedures.find((item) => item.id === procedureId);
   const duplicate = data.duplicateProtectionExecution;
 
   return (
     <div className="space-y-4">
+      {embedded ? selected ? <ProcedureInspector key={selected.id} procedure={selected} data={data} embedded close={() => setProcedureId(null)} /> : null : <>
       <Surface className="overflow-hidden">
         <div className="border-b border-[var(--border)] px-4 py-3"><h2 className="text-sm font-semibold">Structured procedures</h2><p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Natural-language guidance is allowed, but critical branch and policy conditions remain explicit.</p></div>
         <div className="grid gap-0 lg:grid-cols-2">
           {data.procedures.map((procedure) => <button key={procedure.id} onClick={() => setProcedureId(procedure.id)} className="border-b border-[var(--border)] p-4 text-left hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)] lg:odd:border-r"><div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold">{procedure.name}</span><Badge tone={procedure.status === "limited" || procedure.status === "active" ? "success" : procedure.status === "paused" ? "danger" : "warning"}>{procedure.status}</Badge></div><div className="mt-1 text-xs text-[var(--muted-foreground)]">{procedure.trigger}</div><div className="mt-3 flex flex-wrap gap-1.5"><Badge>{procedure.steps.length} steps</Badge><Badge>{Math.round(procedure.evaluation.passRate * 100)}% eval</Badge><Badge>{procedure.evaluation.sampleSize.toLocaleString()} cases</Badge></div></button>)}
         </div>
       </Surface>
+      </>}
 
       <ExecutionPreview data={data} />
       <ActionCatalog data={data} />
@@ -212,7 +214,7 @@ export function ProceduresView({ data }: { data: WorkspaceData }) {
         </div>
       </Surface>
 
-      {selected ? (
+      {selected && !embedded ? (
         <>
           <button aria-label="Close procedure inspector" onClick={() => setProcedureId(null)} className="fixed inset-0 top-12 z-40 bg-black/25 xl:hidden" />
           <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_520px]"><div /><ProcedureInspector procedure={selected} data={data} close={() => setProcedureId(null)} /></div>

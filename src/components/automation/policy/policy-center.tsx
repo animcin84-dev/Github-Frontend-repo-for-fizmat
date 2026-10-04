@@ -31,7 +31,7 @@ function DecisionCell({ active, tone, children }: { active: boolean; tone: "succ
   return <td className="px-3 py-3 text-center">{active ? <Badge tone={tone}>{children}</Badge> : <span className="text-[var(--border-strong)]">—</span>}</td>;
 }
 
-function PolicyInspector({ policy, data, close }: { policy: AutomationPolicy; data: WorkspaceData; close: () => void }) {
+function PolicyInspector({ policy, data, close, embedded = false }: { policy: AutomationPolicy; data: WorkspaceData; close: () => void; embedded?: boolean }) {
   const action = data.actions.find((item) => item.id === policy.actionId);
   const decision = policyDecision(policy);
   const current = policy.versions.find((item) => item.status === "current") ?? policy.versions[0];
@@ -40,7 +40,7 @@ function PolicyInspector({ policy, data, close }: { policy: AutomationPolicy; da
   const isRefund = policy.id === "policy-refund";
 
   return (
-    <aside aria-label="Automation policy details" className="fixed inset-y-12 right-0 z-50 w-[min(96vw,500px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none">
+    <aside aria-label="Automation policy details" className={embedded ? "si-inline-inspector" : "fixed inset-y-12 right-0 z-50 w-[min(96vw,500px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none"}>
       <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-1)] px-4 py-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">Policy control</div>
@@ -143,9 +143,10 @@ function PolicyInspector({ policy, data, close }: { policy: AutomationPolicy; da
   );
 }
 
-export function PolicyCenter({ data }: { data: WorkspaceData }) {
+export function PolicyCenter({ data, embedded = false }: { data: WorkspaceData; embedded?: boolean }) {
   const [policyId, setPolicyId] = useQueryState("policy", { defaultValue: "" });
   const selected = data.policies.find((item) => item.id === policyId);
+  if (embedded) return selected ? <PolicyInspector policy={selected} data={data} embedded close={() => setPolicyId(null)} /> : <div className="si-empty-inset">Select a policy to inspect its scope, prerequisites, versions and historical replay.</div>;
 
   return (
     <div className="space-y-4">

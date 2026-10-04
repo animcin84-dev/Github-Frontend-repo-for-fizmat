@@ -4,12 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowRight,
-  Bot,
   CheckCircle2,
   ChevronRight,
-  CircleDot,
   DatabaseZap,
-  FileSearch,
   GitCompareArrows,
   Languages,
   LockKeyhole,
@@ -17,8 +14,6 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
-  TrendingDown,
-  TrendingUp,
   UserRoundCheck,
   X,
 } from "lucide-react";
@@ -26,24 +21,15 @@ import Link from "next/link";
 import { useQueryState } from "nuqs";
 import { useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { toast } from "sonner";
-import {
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  type ColumnDef,
-  useReactTable,
-} from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/page-state";
 import { Surface } from "@/components/ui/surface";
+import { DetailBand, FilterHinge, OperationalWorkspace, ReferenceSummary, RouteHeader, WorkspaceTabs } from "@/components/reference/reference-layout";
 import type {
   AIFailure,
   AIOutcome,
   AutomationReadiness,
-  EvaluationCase,
-  EvaluationSuite,
   FailureCause,
   KnowledgeSource,
   QualityRecommendation,
@@ -104,23 +90,6 @@ function toneForDelta(delta: number, inverse = false) {
 function filterByRange<T extends { timestamp: string }>(items: T[], range: string) {
   const cutoff = QUALITY_NOW - (rangeMs[range] ?? rangeMs["30d"]);
   return items.filter((item) => Date.parse(item.timestamp) >= cutoff);
-}
-
-function TabButton({ value, active, onClick, children }: { value: Tab; active: Tab; onClick: (value: Tab) => void; children: React.ReactNode }) {
-  const selected = value === active;
-  return (
-    <button
-      role="tab"
-      aria-selected={selected}
-      onClick={() => onClick(value)}
-      className={cn(
-        "relative h-10 shrink-0 px-3 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]",
-        selected && "text-[var(--foreground)] after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-[var(--accent)]",
-      )}
-    >
-      {children}
-    </button>
-  );
 }
 
 function CompactMetric({
@@ -409,60 +378,28 @@ function Recommendations({ items }: { items: QualityRecommendation[] }) {
   );
 }
 
-function OverviewView({
-  data,
-  range,
-  setRange,
-  metric,
-  setMetric,
-  inspectCause,
-}: {
-  data: WorkspaceData;
-  range: string;
-  setRange: (value: string | null) => void;
-  metric: string;
-  setMetric: (value: string | null) => void;
-  inspectCause: (cause: FailureCause) => void;
+function SampleHeader({ failure }: { failure: AIFailure }) {
+  return <><div className="si-detail-header"><div><div className="si-label">{failure.conversationId} · Demo sample</div><h2>{failure.customerName} · {titleize(failure.intent)}</h2></div><Badge tone="danger">{failure.type.replaceAll("_", " ")}</Badge></div><div className="si-detail-grid"><div className="si-detail-tile"><div className="si-label">Model</div><strong>{failure.modelVersion.replace("support-", "")}</strong><span>Provider not recorded</span></div><div className="si-detail-tile"><div className="si-label">Evidence</div><strong>{failure.sourceIds.length} sources</strong><span>{failure.knowledgeState}</span></div><div className="si-detail-tile"><div className="si-label">Human outcome</div><strong>{titleize(failure.outcome)}</strong><span>{failure.severity} severity · {failure.locale}</span></div></div></>;
+}
+
+function FailureRows({ failures, selectedId, onSelect }: { failures: AIFailure[]; selectedId?: string; onSelect: (id: string) => void }) {
+  return <div>{failures.map((failure) => <button key={failure.id} className={cn("si-reference-row", selectedId === failure.id && "is-selected")} aria-label={`Inspect failure ${failure.id}`} aria-pressed={selectedId === failure.id} onClick={() => onSelect(failure.id)}><span className="si-mini-avatar">{failure.customerName.slice(0, 1)}</span><span className="si-row-copy min-w-0 flex-1"><strong>{titleize(failure.intent)}</strong><span>{failure.customerName} · {failure.modelVersion}</span><span>{failure.type.replaceAll("_", " ")} · {new Date(failure.timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "UTC" })}</span></span><Badge tone={failure.severity === "critical" ? "danger" : "warning"}>{failure.severity}</Badge></button>)}</div>;
+}
+
+function OverviewView({ data, range, metric, setMetric, inspectCause, tabs, openTrace }: {
+  data: WorkspaceData; range: string; metric: string; setMetric: (value: string | null) => void;
+  inspectCause: (cause: FailureCause) => void; tabs: React.ReactNode; openTrace: (id: string) => void;
 }) {
+  const [sampleId, setSampleId] = useState("");
   const comparison = useMemo(() => compareWindow(data.outcomes, range), [data.outcomes, range]);
-  const failures = useMemo(() => filterByRange(data.failures, range), [data.failures, range]);
-  const rates = comparison.currentRates;
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-end"><RangeSelect range={range} setRange={setRange} /></div>
-      <Surface className="overflow-hidden"><div className="grid grid-cols-2 gap-y-3 py-3 sm:grid-cols-4 xl:grid-cols-8">
-        <CompactMetric label="Accepted" value={pct(rates.acceptance)} note="unchanged + minor edit" delta={comparison.deltas.acceptance} />
-        <CompactMetric label="Unchanged" value={pct(rates.unchanged)} note="sent without edit" delta={comparison.deltas.unchanged} />
-        <CompactMetric label="Minor edit" value={pct(rates.minor)} note="light human correction" delta={comparison.deltas.minor} />
-        <CompactMetric label="Major edit" value={pct(rates.major)} note="substantial correction" delta={comparison.deltas.major} inverseDelta />
-        <CompactMetric label="Rejected" value={pct(rates.rejected)} note="draft not used" delta={comparison.deltas.rejected} inverseDelta />
-        <CompactMetric label="Human takeover" value={pct(rates.takeover)} note="not automatically a failure" delta={comparison.deltas.takeover} />
-        <CompactMetric label="Reopened" value={pct(rates.reopened)} note="customer returned" delta={comparison.deltas.reopened} inverseDelta />
-        <CompactMetric label="Unsupported claim" value={pct(rates.unsupported)} note="grounding failure" delta={comparison.deltas.unsupported} inverseDelta />
-      </div></Surface>
-
-      <div className="grid gap-4 xl:grid-cols-[0.85fr_1.35fr]">
-        <OutcomeFunnel outcomes={comparison.current} />
-        <QualityTrend trend={data.trend} range={range} metric={metric} setMetric={setMetric} />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[0.72fr_1.28fr]">
-        <RootCauseDecomposition failures={failures} onSelect={inspectCause} />
-        <Surface className="p-4">
-          <div className="flex items-center gap-2"><Bot className="size-4 text-[var(--ai)]" /><h2 className="text-sm font-semibold">Deployment context</h2></div>
-          <p className="mt-1 text-xs text-[var(--muted-foreground)]">Quality comparisons keep model, prompt, retriever, policy and knowledge snapshot visible so regressions can be localized.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {[["Model", "support-model-b"], ["Prompt", "support-draft-v15"], ["Retriever", "retriever-r8"], ["Policy", "policy-2026.09"], ["Knowledge", "knowledge-2026.10.03"]].map(([label, value]) => <div key={label} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3"><div className="text-[10px] uppercase tracking-[0.08em] text-[var(--muted-foreground)]">{label}</div><div className="mt-1 truncate text-xs font-semibold">{value}</div></div>)}
-          </div>
-          <div className="mt-4 rounded-md border border-[var(--border)] p-3 text-xs"><div className="font-semibold">Current comparison</div><div className="mt-1 text-[var(--muted-foreground)]">support-model-a / support-draft-v14 / retriever-r7 → support-model-b / support-draft-v15 / retriever-r8. These are neutral demo identifiers, not claims about third-party model performance.</div></div>
-        </Surface>
-      </div>
-
-      <SourceQualityTable outcomes={comparison.current} sources={data.knowledgeSources} />
-      <CohortBreakdowns outcomes={comparison.current} />
-      <Recommendations items={data.recommendations} />
-    </div>
-  );
+  const failures = useMemo(() => filterByRange(data.failures, range).sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp)), [data.failures, range]);
+  const selected = failures.find((item) => item.id === sampleId) ?? failures[0];
+  return <OperationalWorkspace className="si-route-workspace si-quality-workspace" title="Evaluation samples" tabs={tabs}
+    master={<><FailureRows failures={failures.slice(0, 12)} selectedId={selected?.id} onSelect={setSampleId} /><div className="px-3 py-2 text-[10px] text-[var(--muted-foreground)]">Latest {Math.min(12, failures.length)} demo samples · open Failures for all cases.</div></>}
+    detail={<>{selected ? <SampleHeader failure={selected} /> : <div className="si-detail-header"><h2>No failures in this range</h2></div>}<div className="si-detail-scroll si-quality-diagnostics space-y-3"><div className="grid gap-3"><OutcomeFunnel outcomes={comparison.current} /><QualityTrend trend={data.trend} range={range} metric={metric} setMetric={setMetric} /><RootCauseDecomposition failures={failures} onSelect={inspectCause} /><section className="grid grid-cols-2 gap-y-3 rounded-2xl border border-white/25 py-3 sm:grid-cols-4" aria-label="Outcome rate comparison">{([
+      ["Accepted", "acceptance", "unchanged + minor edit", false], ["Unchanged", "unchanged", "sent without edit", false], ["Minor edit", "minor", "light human correction", false], ["Major edit", "major", "substantial correction", true], ["Rejected", "rejected", "draft not used", true], ["Human takeover", "takeover", "policy handoff may be correct", false], ["Reopened", "reopened", "customer returned", true], ["Unsupported claim", "unsupported", "grounding failure", true],
+    ] as const).map(([label, key, note, inverse]) => <CompactMetric key={key} label={label} value={pct(comparison.currentRates[key])} note={note} delta={comparison.deltas[key]} inverseDelta={inverse} />)}</section><SourceQualityTable outcomes={comparison.current} sources={data.knowledgeSources} /><CohortBreakdowns outcomes={comparison.current} /><Recommendations items={data.recommendations} /></div><section className="rounded-2xl border border-white/25 p-3 text-xs"><h3 className="font-semibold">Deployment context</h3><p className="mt-1">support-model-a / support-draft-v14 / retriever-r7 → support-model-b / support-draft-v15 / retriever-r8. Neutral demo identifiers; no third-party performance claim.</p><p className="mt-2">Policy policy-2026.09 · knowledge-2026.10.03</p></section></div><DetailBand metrics={[{ label: "Accepted drafts", value: pct(comparison.currentRates.acceptance) }, { label: "Unsupported claims", value: pct(comparison.currentRates.unsupported) }, { label: "Sample size", value: comparison.current.length.toLocaleString() }]} action={<button className="si-action-pill is-primary" disabled={!selected} onClick={() => selected && openTrace(selected.id)}>Open trace <ArrowRight size={13} /></button>} /></>}
+  />;
 }
 
 function FailureInspector({ failure, sources, onClose }: { failure: AIFailure; sources: KnowledgeSource[]; onClose: () => void }) {
@@ -478,8 +415,8 @@ function FailureInspector({ failure, sources, onClose }: { failure: AIFailure; s
   ] as const;
 
   return (
-    <aside className="fixed inset-y-12 right-0 z-50 w-[min(96vw,480px)] overflow-auto border-l border-[var(--border-strong)] bg-[var(--surface-1)] shadow-2xl xl:sticky xl:top-12 xl:z-auto xl:h-[calc(100dvh-68px)] xl:w-auto xl:shadow-none" aria-label="Failure execution trace">
-      <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-1)] px-4 py-3"><div><div className="flex flex-wrap gap-1.5"><Badge tone="danger">{failure.type.replaceAll("_", " ")}</Badge><Badge>{failure.severity}</Badge><Badge>{failure.locale}</Badge></div><h2 className="mt-2 text-sm font-semibold">{failure.customerName} · {failure.intent.replaceAll("_", " ")}</h2><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">{failure.modelVersion} · {new Date(failure.timestamp).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC</div></div><button onClick={onClose} aria-label="Close failure inspector" className="grid size-7 shrink-0 place-items-center rounded-md hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button></div>
+    <aside className="min-w-0" aria-label="Failure execution trace">
+      <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-3 py-2"><div><div className="flex flex-wrap gap-1.5"><Badge tone="danger">{failure.type.replaceAll("_", " ")}</Badge><Badge>{failure.severity}</Badge><Badge>{failure.locale}</Badge></div><h2 className="mt-2 text-sm font-semibold">{failure.customerName} · {failure.intent.replaceAll("_", " ")}</h2><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">{failure.modelVersion} · {new Date(failure.timestamp).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC</div></div><button onClick={onClose} aria-label="Close failure inspector" className="grid size-7 shrink-0 place-items-center rounded-md hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><X className="size-3.5" /></button></div>
       <div className="p-4">
         <div className="relative space-y-0">
           {steps.map(([label, value, Icon], index) => <section key={label} className="relative grid grid-cols-[30px_1fr] gap-2 pb-4 last:pb-0"><div className="relative flex justify-center">{index < steps.length - 1 ? <div className="absolute bottom-0 top-6 w-px bg-[var(--border)]" /> : null}<div className={cn("z-10 grid size-6 place-items-center rounded-full border bg-[var(--surface-1)]", label === "Problem" ? "border-[var(--danger)] text-[var(--danger)]" : "border-[var(--border-strong)] text-[var(--muted-foreground)]")}><Icon className="size-3" /></div></div><div><div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">{label}</div><div className={cn("mt-1 whitespace-pre-line rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-2.5 text-xs leading-5", label === "Problem" && "border-[color-mix(in_srgb,var(--danger)_30%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_5%,var(--surface-1))]")}>{value}</div></div></section>)}
@@ -498,12 +435,14 @@ function FailuresView({
   setRange,
   cause,
   setCause,
+  tabs,
 }: {
   data: WorkspaceData;
   range: string;
   setRange: (value: string | null) => void;
   cause: string;
   setCause: (value: string | null) => void;
+  tabs: React.ReactNode;
 }) {
   const [failureType, setFailureType] = useQueryState("failure", { defaultValue: "" });
   const [locale, setLocale] = useQueryState("locale", { defaultValue: "" });
@@ -514,6 +453,7 @@ function FailuresView({
   const [channel, setChannel] = useQueryState("channel", { defaultValue: "" });
   const [failureId, setFailureId] = useQueryState("failureId", { defaultValue: "" });
   const [pageIndex, setPageIndex] = useState(0);
+  const [inspectorClosed, setInspectorClosed] = useState(false);
 
   const filtered = useMemo(() => {
     return filterByRange(data.failures, range).filter((item) =>
@@ -528,43 +468,19 @@ function FailuresView({
     ).sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
   }, [data.failures, range, failureType, locale, intent, model, knowledge, source, channel, cause]);
 
-  const columns = useMemo<ColumnDef<AIFailure>[]>(() => [
-    { accessorKey: "conversationId", header: "Conversation", cell: ({ row }) => <div><div className="font-semibold">{row.original.conversationId}</div><div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">{row.original.customerName}</div></div> },
-    { accessorKey: "locale", header: "Locale" },
-    { accessorKey: "intent", header: "Intent", cell: ({ getValue }) => titleize(String(getValue())) },
-    { accessorKey: "type", header: "Failure", cell: ({ row }) => <Badge tone="danger">{row.original.type.replaceAll("_", " ")}</Badge> },
-    { accessorKey: "severity", header: "Severity", cell: ({ row }) => <Badge tone={row.original.severity === "critical" ? "danger" : row.original.severity === "high" ? "warning" : "neutral"}>{row.original.severity}</Badge> },
-    { accessorKey: "knowledgeState", header: "Knowledge", cell: ({ row }) => <Badge tone={row.original.knowledgeState === "healthy" ? "success" : row.original.knowledgeState === "missing" || row.original.knowledgeState === "conflict" ? "danger" : "warning"}>{row.original.knowledgeState}</Badge> },
-    { accessorKey: "modelVersion", header: "Model" },
-    { accessorKey: "outcome", header: "Outcome" },
-    { accessorKey: "timestamp", header: "Time", cell: ({ row }) => new Date(row.original.timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "UTC" }) },
-  ], []);
-
-  const table = useReactTable({
-    data: filtered,
-    columns,
-    state: { pagination: { pageIndex, pageSize: 60 } },
-    onPaginationChange: (updater) => {
-      const current = { pageIndex, pageSize: 60 };
-      const next = typeof updater === "function" ? updater(current) : updater;
-      setPageIndex(next.pageIndex);
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
-
-  const selected = data.failures.find((item) => item.id === failureId);
+  const pageSize = 60;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(pageIndex, pageCount - 1);
+  const pageRows = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const selected = data.failures.find((item) => item.id === failureId) ?? (!inspectorClosed ? pageRows[0] : undefined);
   const resetPage = () => setPageIndex(0);
   const selectClass = "h-8 rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]";
   const intents = Array.from(new Set(data.failures.map((item) => item.intent))).sort();
   const sourceOptions = data.knowledgeSources.filter((item) => data.failures.some((failure) => failure.sourceIds.includes(item.id)));
   const failureTypes = Array.from(new Set(data.failures.map((item) => item.type))).sort();
 
-  return (
-    <div className="space-y-4">
-      <Surface className="overflow-hidden">
-        <div className="flex flex-col gap-2 border-b border-[var(--border)] px-4 py-3 md:flex-row md:items-center md:justify-between"><div><h2 className="text-sm font-semibold">Failure Explorer</h2><p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Trace observed failure outcomes back to knowledge, policy, retrieval, triage or generation.</p></div><div className="flex items-center gap-2"><Badge>{filtered.length.toLocaleString()} failures</Badge><RangeSelect range={range} setRange={(value) => { setRange(value); resetPage(); }} /></div></div>
-        <div className="flex flex-wrap gap-2 border-b border-[var(--border)] bg-[var(--surface-1)] px-3 py-2">
+  return <><FilterHinge count={[failureType, locale, intent, model, knowledge, source, channel, cause].filter(Boolean).length}>
+    <RangeSelect range={range} setRange={(value) => { setRange(value); resetPage(); }} />
           <select className={selectClass} aria-label="Failure type" value={failureType} onChange={(e) => { setFailureType(e.target.value || null); resetPage(); }}><option value="">All failure types</option>{failureTypes.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select>
           <select className={selectClass} aria-label="Failure locale" value={locale} onChange={(e) => { setLocale(e.target.value || null); resetPage(); }}><option value="">All locales</option>{Object.entries(localeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
           <select className={selectClass} aria-label="Failure intent" value={intent} onChange={(e) => { setIntent(e.target.value || null); resetPage(); }}><option value="">All intents</option>{intents.map((value) => <option key={value} value={value}>{titleize(value)}</option>)}</select>
@@ -573,72 +489,23 @@ function FailuresView({
           <select className={selectClass} aria-label="Failure source" value={source} onChange={(e) => { setSource(e.target.value || null); resetPage(); }}><option value="">All sources</option>{sourceOptions.map((value) => <option key={value.id} value={value.id}>{value.title}</option>)}</select>
           <select className={selectClass} aria-label="Failure channel" value={channel} onChange={(e) => { setChannel(e.target.value || null); resetPage(); }}><option value="">All channels</option>{["email","web","telegram","whatsapp","api"].map((value) => <option key={value} value={value}>{value}</option>)}</select>
           <select className={selectClass} aria-label="Root cause" value={cause} onChange={(e) => { setCause(e.target.value || null); resetPage(); }}><option value="">All root causes</option>{Object.entries(rootCauseLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        </div>
-
-        <div className={cn("grid min-h-[520px]", selected ? "xl:grid-cols-[minmax(0,1fr)_480px]" : "grid-cols-1")}>
-          <div className="min-w-0 overflow-x-auto">
-            <table className="w-full min-w-[1100px] border-collapse text-left text-xs">
-              <thead className="sticky top-0 z-10 bg-[var(--surface-2)] text-[10px] uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
-                {table.getHeaderGroups().map((group) => <tr key={group.id}>{group.headers.map((header) => <th key={header.id} className="border-b border-[var(--border)] px-3 py-2 font-medium">{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</th>)}</tr>)}
-              </thead>
-              <tbody>
-                {table.getRowModel().rows.map((row) => <tr key={row.id} className={cn("border-b border-[var(--border)] hover:bg-[var(--surface-2)]", row.original.id === failureId && "bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-1))]")}>{row.getVisibleCells().map((cell, cellIndex) => <td key={cell.id} className="max-w-[220px] px-3 py-2.5 align-top">{cellIndex === 0 ? <button onClick={() => setFailureId(row.original.id)} aria-label={`Inspect failure ${row.original.id}`} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">{flexRender(cell.column.columnDef.cell, cell.getContext())}</button> : flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}</tr>)}
-              </tbody>
-            </table>
-            {!filtered.length ? <div className="grid min-h-56 place-items-center p-6 text-center"><div><FileSearch className="mx-auto size-5 text-[var(--muted-foreground)]" /><div className="mt-2 text-sm font-medium">No failures match these filters</div><div className="mt-1 text-xs text-[var(--muted-foreground)]">Widen the time range or clear one of the URL-backed filters.</div></div></div> : null}
-            {filtered.length ? <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-2 text-xs"><span className="text-[var(--muted-foreground)]">Page {table.getState().pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())} · 60 rows/page</span><div className="flex gap-1"><Button size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button><Button size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button></div></div> : null}
-          </div>
-          {selected ? <><button aria-label="Close failure inspector" onClick={() => setFailureId(null)} className="fixed inset-0 top-12 z-40 bg-black/25 xl:hidden" /><FailureInspector failure={selected} sources={data.knowledgeSources} onClose={() => setFailureId(null)} /></> : null}
-        </div>
-      </Surface>
-    </div>
-  );
+  </FilterHinge><OperationalWorkspace className="si-route-workspace si-quality-workspace" title="Failure Explorer" tabs={tabs}
+    master={<><FailureRows failures={pageRows} selectedId={selected?.id} onSelect={(id) => { setInspectorClosed(false); setFailureId(id); }} />{!filtered.length ? <div className="p-4 text-xs">No failures match these filters. Widen the time range or clear one of the URL-backed filters.</div> : null}<div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-2 text-[10px]"><span>Page {currentPage + 1} of {pageCount} · 60 rows/page</span><div className="flex gap-1"><Button size="sm" disabled={currentPage === 0} onClick={() => setPageIndex(currentPage - 1)}>Previous</Button><Button size="sm" disabled={currentPage >= pageCount - 1} onClick={() => setPageIndex(currentPage + 1)}>Next</Button></div></div></>}
+    detail={<>{selected ? <><SampleHeader failure={selected} /><div className="si-detail-scroll si-quality-diagnostics"><FailureInspector failure={selected} sources={data.knowledgeSources} onClose={() => { setInspectorClosed(true); setFailureId(null); }} /></div><DetailBand metrics={[{ label: "Root cause", value: rootCauseLabels[selected.rootCause] }, { label: "Outcome", value: titleize(selected.outcome) }, { label: "Sources", value: selected.sourceIds.length }]} action={<Link className="si-action-pill is-primary" href={`/inbox/${selected.conversationId}`}>Open conversation <ArrowRight size={13} /></Link>} /></> : <div className="flex flex-1 flex-col justify-center p-4"><h2 className="text-lg font-medium">Select a failure sample</h2><p className="mt-2 text-xs">Review the recorded execution trace, evidence and final human outcome.</p></div>}</>}
+  /></>;
 }
 
-function EvaluationSuiteTable({ suites, selected, onSelect }: { suites: EvaluationSuite[]; selected: string; onSelect: (id: string | null) => void }) {
-  return (
-    <Surface className="overflow-hidden">
-      <div className="border-b border-[var(--border)] px-4 py-3"><h2 className="text-sm font-semibold">Evaluation suites</h2><p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Pass rate describes the evaluation rubric; it is not a universal “accuracy” score.</p></div>
-      <div className="overflow-x-auto"><table className="w-full min-w-[780px] border-collapse text-left text-xs"><thead className="bg-[var(--surface-2)] text-[10px] uppercase tracking-[0.08em] text-[var(--muted-foreground)]"><tr>{["Evaluation", "Pass rate", "Cases", "Δ previous", "Last run", "Status"].map((label) => <th key={label} className="border-b border-[var(--border)] px-3 py-2 font-medium">{label}</th>)}</tr></thead><tbody>{suites.map((suite) => {
-        const delta = (suite.passRate - suite.previousPassRate) * 100;
-        return <tr key={suite.id} onClick={() => onSelect(suite.id)} className={cn("cursor-pointer border-b border-[var(--border)] hover:bg-[var(--surface-2)]", selected === suite.id && "bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-1))]")}><td className="px-3 py-3"><div className="font-semibold">{suite.name}</div><div className="mt-0.5 max-w-[360px] text-[10px] text-[var(--muted-foreground)]">{suite.description}</div></td><td className="px-3 py-3 text-lg font-semibold">{pct(suite.passRate)}</td><td className="px-3 py-3">{suite.caseCount.toLocaleString()}</td><td className={cn("px-3 py-3 font-semibold", toneForDelta(delta))}>{pp(delta)}</td><td className="px-3 py-3 text-[var(--muted-foreground)]">{new Date(suite.lastRunAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC</td><td className="px-3 py-3"><Badge tone={suite.status === "passing" ? "success" : suite.status === "regression" ? "danger" : "warning"}>{suite.status}</Badge></td></tr>;
-      })}</tbody></table></div>
-    </Surface>
-  );
-}
-
-function EvaluationCases({ cases }: { cases: EvaluationCase[] }) {
-  const summary = {
-    passed: cases.filter((item) => item.result === "passed").length,
-    failed: cases.filter((item) => item.result === "failed").length,
-    regressions: cases.filter((item) => item.change === "regression").length,
-    improved: cases.filter((item) => item.change === "improved").length,
-  };
-  return (
-    <Surface className="overflow-hidden">
-      <div className="grid grid-cols-4 border-b border-[var(--border)] py-3"><CompactMetric label="Passed" value={String(summary.passed)} note="sampled cases shown" /><CompactMetric label="Failed" value={String(summary.failed)} note="needs review" /><CompactMetric label="Regressions" value={String(summary.regressions)} note="vs previous version" /><CompactMetric label="Improved" value={String(summary.improved)} note="vs previous version" /></div>
-      <div className="divide-y divide-[var(--border)]">{cases.map((item) => <article key={item.id} className="grid gap-3 p-4 xl:grid-cols-[1fr_1fr_1fr_0.8fr]"><div><div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Input</div><div className="mt-1 text-xs leading-5">{item.input}</div></div><div><div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Expected</div><div className="mt-1 text-xs leading-5">{item.expectedBehavior}</div></div><div><div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Observed</div><div className="mt-1 text-xs leading-5">{item.observedBehavior}</div></div><div><div className="flex gap-1.5"><Badge tone={item.result === "passed" ? "success" : "danger"}>{item.result}</Badge><Badge tone={item.change === "regression" ? "danger" : item.change === "improved" ? "success" : "neutral"}>{item.change}</Badge></div><div className="mt-2 text-[11px] text-[var(--muted-foreground)]">Evidence: {item.evidence}</div><div className="mt-1 text-[10px] font-medium">{item.version}</div></div></article>)}</div>
-    </Surface>
-  );
-}
-
-function EvaluationsView({ data }: { data: WorkspaceData }) {
+function EvaluationsView({ data, tabs }: { data: WorkspaceData; tabs: React.ReactNode }) {
   const [suiteId, setSuiteId] = useQueryState("suite", { defaultValue: "grounding" });
-  const selected = data.evaluationSuites.find((suite) => suite.id === suiteId) ?? data.evaluationSuites[0];
-  const cases = data.evaluationCases.filter((item) => item.suiteId === selected.id);
+  const [caseId, setCaseId] = useState("");
+  const suite = data.evaluationSuites.find((item) => item.id === suiteId) ?? data.evaluationSuites[0];
+  const cases = data.evaluationCases.filter((item) => item.suiteId === suite.id);
+  const selected = cases.find((item) => item.id === caseId) ?? cases[0];
   const run = data.evaluationRun;
-  const delta = (run.overallPassRate - run.previousPassRate) * 100;
-
-  return (
-    <div className="space-y-4">
-      <Surface className="p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex items-center gap-2"><Badge tone="info">Version comparison</Badge><span className="text-xs font-semibold">{run.previousModelVersion} → {run.modelVersion}</span></div><div className="mt-2 flex items-baseline gap-2"><span className="text-3xl font-semibold">{pct(run.overallPassRate)}</span><span className={cn("text-xs font-semibold", toneForDelta(delta))}>{pp(delta)} overall</span></div><p className="mt-1 text-xs text-[var(--muted-foreground)]">Aggregate improvement does not establish statistical significance and must not hide segment regressions.</p></div><div className="text-xs text-[var(--muted-foreground)]">Run {new Date(run.runAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC</div></div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{run.segmentChanges.map((segment) => <div key={segment.segment} className={cn("rounded-md border p-3", segment.deltaPercentagePoints < 0 ? "border-[color-mix(in_srgb,var(--danger)_28%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_4%,var(--surface-1))]" : "border-[var(--border)] bg-[var(--surface-2)]")}><div className="text-xs font-semibold">{segment.segment}</div><div className={cn("mt-1 text-lg font-semibold", toneForDelta(segment.deltaPercentagePoints))}>{pp(segment.deltaPercentagePoints)}</div><div className="mt-1 text-[10px] leading-4 text-[var(--muted-foreground)]">{segment.note}</div></div>)}</div>
-      </Surface>
-      <EvaluationSuiteTable suites={data.evaluationSuites} selected={selected.id} onSelect={setSuiteId} />
-      <EvaluationCases cases={cases} />
-    </div>
-  );
+  return <OperationalWorkspace className="si-route-workspace si-quality-workspace" title="Evaluation suites" tabs={tabs}
+    master={<><div>{data.evaluationSuites.map((item) => <button key={item.id} className={cn("si-reference-row", item.id === suite.id && "is-selected")} aria-pressed={item.id === suite.id} onClick={() => { setSuiteId(item.id); setCaseId(""); }}><span className="si-mini-avatar">{item.name.slice(0, 1)}</span><span className="si-row-copy min-w-0 flex-1"><strong>{item.name}</strong><span>{item.caseCount.toLocaleString()} cases · {item.status} · {pp((item.passRate - item.previousPassRate) * 100)}</span></span><span className="text-sm tabular-nums">{pct(item.passRate)}</span></button>)}</div><div className="si-pane-heading mt-3">Sampled cases</div>{cases.map((item, index) => <button key={item.id} className={cn("si-reference-row", item.id === selected?.id && "is-selected")} aria-pressed={item.id === selected?.id} onClick={() => setCaseId(item.id)}><span className="si-row-copy min-w-0 flex-1"><strong className="line-clamp-2">{index + 1}. {item.input}</strong><span>{item.result} · {item.change}</span></span></button>)}</>}
+    detail={<><div className="si-detail-header"><div><div className="si-label">{selected?.id ?? suite.id} · Demo evaluation</div><h2>{suite.name} rubric</h2></div><Badge tone={selected?.result === "passed" ? "success" : "danger"}>{selected?.result ?? suite.status}</Badge></div><div className="si-detail-grid"><div className="si-detail-tile"><div className="si-label">Suite pass rate</div><strong>{pct(suite.passRate)}</strong><span>{suite.caseCount.toLocaleString()} rubric cases</span></div><div className="si-detail-tile"><div className="si-label">Previous run</div><strong>{pp((suite.passRate - suite.previousPassRate) * 100)}</strong><span>{pct(suite.previousPassRate)} pass rate</span></div><div className="si-detail-tile"><div className="si-label">Regressions</div><strong>{cases.filter((item) => item.change === "regression").length}</strong><span>Sampled cases only</span></div></div><div className="si-detail-scroll si-quality-diagnostics space-y-3">{selected ? <section aria-label="Selected evaluation case" className="grid gap-3 rounded-2xl border border-white/25 p-3 sm:grid-cols-2">{[["Input", selected.input], ["Retrieval / evidence", selected.evidence], ["Model output", selected.observedBehavior], ["Judge result", `${selected.result} · ${selected.change}. Expected: ${selected.expectedBehavior}`]].map(([label, value]) => <div key={label}><h3 className="si-label">{label}</h3><p className="mt-1 text-xs leading-5">{value}</p></div>)}</section> : null}<section className="rounded-2xl border border-white/25 p-3"><div className="flex flex-wrap items-center gap-2"><Badge tone="info">Version comparison</Badge><span className="text-xs">{run.previousModelVersion} → {run.modelVersion}</span></div><p className="mt-2 text-xs">Overall {pct(run.overallPassRate)} · {pp((run.overallPassRate - run.previousPassRate) * 100)}. Aggregate improvement does not establish significance or hide segment regressions.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{run.segmentChanges.map((segment) => <div key={segment.segment} className="rounded-xl border border-white/25 p-2"><div className="text-xs font-semibold">{segment.segment}</div><div className={cn("mt-1 text-lg font-semibold", toneForDelta(segment.deltaPercentagePoints))}>{pp(segment.deltaPercentagePoints)}</div><p className="mt-1 text-[10px] leading-4">{segment.note}</p></div>)}</div></section><p className="text-xs">{suite.description} Last run {new Date(suite.lastRunAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC. Provider and independent factuality scores are not recorded in this demo.</p></div><DetailBand metrics={[{ label: "Draft version", value: selected?.version ?? "Unavailable" }, { label: "Result", value: selected?.result ?? suite.status }, { label: "Case evidence", value: selected ? "Recorded" : "Unavailable" }]} action={<button className="si-action-pill is-primary" disabled={!selected} onClick={() => document.querySelector('[aria-label="Selected evaluation case"]')?.scrollIntoView({ block: "nearest" })}>Open trace <ArrowRight size={13} /></button>} /></>}
+  />;
 }
 
 function ReadinessTable({ rows }: { rows: AutomationReadiness[] }) {
@@ -664,19 +531,14 @@ function ShadowDiff({ simulation, sources }: { simulation: ShadowSimulation; sou
   );
 }
 
-function ShadowView({ data }: { data: WorkspaceData }) {
+function ShadowView({ data, tabs }: { data: WorkspaceData; tabs: React.ReactNode }) {
   const [shadowId, setShadowId] = useQueryState("shadowId", { defaultValue: "shadow-001" });
   const selected = data.shadowSimulations.find((item) => item.id === shadowId) ?? data.shadowSimulations[0];
   const summary = data.shadowSummary;
-  return (
-    <div className="space-y-4">
-      <Surface className="overflow-hidden"><div className="grid grid-cols-2 gap-y-3 py-3 sm:grid-cols-5"><CompactMetric label="Historical analyzed" value={summary.analyzed.toLocaleString()} note="shadow-only; no messages sent" /><CompactMetric label="Draft possible" value={summary.draftPossible.toLocaleString()} note="grounded draft possible" /><CompactMetric label="Human review" value={summary.humanReview.toLocaleString()} note="approval required" /><CompactMetric label="Human-only" value={summary.humanOnly.toLocaleString()} note="policy blocks autonomy" /><CompactMetric label="Insufficient knowledge" value={summary.insufficientKnowledge.toLocaleString()} note="draft withheld" /></div></Surface>
-      <Surface className="border-[color-mix(in_srgb,var(--ai)_28%,var(--border))] p-4"><div className="flex items-start gap-3"><LockKeyhole className="mt-0.5 size-4 shrink-0 text-[var(--ai)]" /><div><div className="text-sm font-semibold">Shadow Mode never sends customer replies</div><p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">This surface answers “what would AI have proposed on historical conversations if enabled today?” Actual customer outcomes remain the comparison baseline; simulation does not execute actions.</p></div></div></Surface>
-      <ReadinessTable rows={data.automationReadiness} />
-      <Surface className="overflow-hidden"><div className="flex flex-col gap-3 border-b border-[var(--border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold">Historical simulation samples</h2><p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Select a conversation to compare the actual resolution with today’s proposed AI behavior.</p></div><select aria-label="Shadow simulation" value={selected.id} onChange={(event) => setShadowId(event.target.value)} className="h-8 max-w-sm rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-2 text-xs">{data.shadowSimulations.map((simulation) => <option key={simulation.id} value={simulation.id}>{simulation.conversationId} · {titleize(simulation.intent)}</option>)}</select></div><ShadowDiff simulation={selected} sources={data.knowledgeSources} /></Surface>
-      <Recommendations items={data.recommendations} />
-    </div>
-  );
+  return <OperationalWorkspace className="si-route-workspace si-quality-workspace" title="Historical simulation samples" tabs={tabs}
+    master={<>{data.shadowSimulations.map((item) => <button key={item.id} className={cn("si-reference-row", selected.id === item.id && "is-selected")} aria-pressed={selected.id === item.id} onClick={() => setShadowId(item.id)}><span className="si-mini-avatar">{item.locale.slice(0, 2).toUpperCase()}</span><span className="si-row-copy min-w-0 flex-1"><strong>{titleize(item.intent)}</strong><span>{item.conversationId} · {item.classification.replaceAll("_", " ")}</span></span></button>)}<div className="mt-4 p-3 text-xs"><LockKeyhole size={15} className="mb-2" /><strong>Shadow Mode never sends customer replies</strong><p className="mt-2 text-[var(--muted-foreground)]">Demo historical comparisons. Simulation does not execute actions.</p></div></>}
+    detail={<><div className="si-detail-header"><div><div className="si-label">{selected.id} · Demo shadow sample</div><h2>{titleize(selected.intent)}</h2></div><select aria-label="Shadow simulation" value={selected.id} onChange={(event) => setShadowId(event.target.value)} className="max-w-[48%] rounded-full border border-white/30 bg-white/25 px-2 py-1.5 text-xs">{data.shadowSimulations.map((item) => <option key={item.id} value={item.id}>{item.conversationId}</option>)}</select></div><div className="si-detail-grid"><div className="si-detail-tile"><div className="si-label">Historical analyzed</div><strong>{summary.analyzed.toLocaleString()}</strong><span>No messages sent</span></div><div className="si-detail-tile"><div className="si-label">Draft possible</div><strong>{summary.draftPossible.toLocaleString()}</strong><span>{summary.humanReview.toLocaleString()} need review</span></div><div className="si-detail-tile"><div className="si-label">Human-only</div><strong>{summary.humanOnly.toLocaleString()}</strong><span>{summary.insufficientKnowledge.toLocaleString()} lack knowledge</span></div></div><div className="si-detail-scroll si-quality-diagnostics space-y-3"><ShadowDiff simulation={selected} sources={data.knowledgeSources} /><ReadinessTable rows={data.automationReadiness} /><Recommendations items={data.recommendations} /></div><DetailBand metrics={[{ label: "Classification", value: titleize(selected.classification) }, { label: "Evidence", value: `${selected.sourceIds.length} sources` }, { label: "Differences", value: selected.differences.length }]} action={<Link className="si-action-pill is-primary" href={`/inbox/${selected.conversationId}`}>Open trace <ArrowRight size={13} /></Link>} /></>}
+  />;
 }
 
 export function AIQualityWorkspace() {
@@ -685,6 +547,7 @@ export function AIQualityWorkspace() {
   const [range, setRange] = useQueryState("range", { defaultValue: "30d" });
   const [metric, setMetric] = useQueryState("metric", { defaultValue: "acceptedRate" });
   const [cause, setCause] = useQueryState("cause", { defaultValue: "" });
+  const [, setFailureId] = useQueryState("failureId", { defaultValue: "" });
 
   if (query.isLoading || !query.data) return <LoadingState label="Loading AI quality diagnostics…" />;
 
@@ -696,31 +559,20 @@ export function AIQualityWorkspace() {
     setTab("failures");
   };
 
-  return (
-    <div className="si-page mx-auto max-w-[1720px]">
-      <div className="si-page-header">
-        <div><h1 className="si-page-title">AI Quality</h1><p className="si-page-subtitle">Where AI is reliable, where it fails, why it fails, and what should change before more support work is automated.</p></div>
-        <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]"><CircleDot className="size-3.5 text-[var(--success)]" />Deterministic evaluation snapshot · 09:15 UTC</div>
-      </div>
-
-      <Surface className="mb-4 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-2">
-          <div role="tablist" aria-label="AI Quality workspace views" className="flex overflow-x-auto">
-            <TabButton value="overview" active={tab} onClick={setTab}>Overview</TabButton>
-            <TabButton value="failures" active={tab} onClick={setTab}>Failures <Badge tone="danger" className="ml-1">{query.data.failures.length}</Badge></TabButton>
-            <TabButton value="evaluations" active={tab} onClick={setTab}>Evaluations</TabButton>
-            <TabButton value="shadow" active={tab} onClick={setTab}>Shadow Mode</TabButton>
-          </div>
-          <div className="hidden items-center gap-1 text-[10px] text-[var(--muted-foreground)] md:flex"><ShieldCheck className="size-3.5" />No universal AI confidence score</div>
-        </div>
-      </Surface>
-
-      {tab === "overview" ? <OverviewView data={query.data} range={range} setRange={setRange} metric={metric} setMetric={setMetric} inspectCause={inspectCause} /> : null}
-      {tab === "failures" ? <FailuresView data={query.data} range={range} setRange={setRange} cause={cause} setCause={setCause} /> : null}
-      {tab === "evaluations" ? <EvaluationsView data={query.data} /> : null}
-      {tab === "shadow" ? <ShadowView data={query.data} /> : null}
-
-      <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-[var(--muted-foreground)]"><span className="inline-flex items-center gap-1"><ShieldCheck className="size-3 text-[var(--success)]" />Human-only policy can be correct quality behavior</span><span className="inline-flex items-center gap-1"><AlertTriangle className="size-3 text-[var(--warning)]" />Correlation is not treated as root cause</span><span className="inline-flex items-center gap-1"><Languages className="size-3" />Locale conclusions always retain sample size</span></div>
-    </div>
-  );
+  const data = query.data;
+  const comparison = compareWindow(data.outcomes, range);
+  const rates = comparison.currentRates;
+  const grounding = data.evaluationSuites.find((item) => item.id === "grounding");
+  const tone = data.evaluationSuites.find((item) => item.id === "tone");
+  const tabs = <WorkspaceTabs label="AI Quality workspace views" active={tab} onChange={(value) => setTab(value as Tab)} items={[{ id: "overview", label: "Overview" }, { id: "failures", label: "Failures", count: data.failures.length }, { id: "evaluations", label: "Evaluations" }, { id: "shadow", label: "Shadow Mode" }]} />;
+  return <div className="si-page">
+    <RouteHeader title="AI Quality" note={<Badge tone="neutral">Demo evaluation snapshot</Badge>} />
+    <ReferenceSummary metrics={[{ label: "Overall pass rate", value: pct(data.evaluationRun.overallPassRate), note: "Demo evaluation rubric" }, { label: "Human override rate", value: pct(rates.minor + rates.major + rates.rejected + rates.takeover), note: `${comparison.current.length.toLocaleString()} sampled outcomes` }, { label: "Grounding pass rate", value: grounding ? pct(grounding.passRate) : "Unavailable", note: "Factuality not independently scored" }]} activityLabel="Demo evaluation suite distribution" activity={data.evaluationSuites.slice(0, 4).map((suite) => ({ label: suite.name, value: suite.caseCount, marker: suite.name.slice(0, 1) }))} signal={{ label: "Quality signal", value: pct(data.evaluationRun.overallPassRate), note: "Demo", options: [{ label: "Grounding", value: grounding ? pct(grounding.passRate) : "—" }, { label: "Factuality", value: "Unscored" }, { label: "Tone", value: tone ? pct(tone.passRate) : "—" }], active: 0, action: <button className="si-action-pill" onClick={() => setTab("failures")}>Review failures</button> }} />
+    {tab !== "failures" ? <FilterHinge label="Scope" count={range !== "30d" ? 1 : 0}><RangeSelect range={range} setRange={setRange} /><span className="text-[10px] text-[var(--muted-foreground)]">Deterministic demo · 03 Oct 2026, 09:15 UTC</span></FilterHinge> : null}
+    {tab === "overview" ? <OverviewView data={data} range={range} metric={metric} setMetric={setMetric} inspectCause={inspectCause} tabs={tabs} openTrace={(id) => { setFailureId(id); setTab("failures"); }} /> : null}
+    {tab === "failures" ? <FailuresView data={data} range={range} setRange={setRange} cause={cause} setCause={setCause} tabs={tabs} /> : null}
+    {tab === "evaluations" ? <EvaluationsView data={data} tabs={tabs} /> : null}
+    {tab === "shadow" ? <ShadowView data={data} tabs={tabs} /> : null}
+    <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[10px] text-[var(--muted-foreground)]"><span className="inline-flex items-center gap-1"><ShieldCheck size={12} />Human-only policy can be correct quality behavior</span><span className="inline-flex items-center gap-1"><AlertTriangle size={12} />Correlation is not treated as root cause</span><span className="inline-flex items-center gap-1"><Languages size={12} />Locale conclusions retain sample size</span></div>
+  </div>;
 }

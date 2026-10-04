@@ -35,6 +35,7 @@ export function OverviewDashboard() {
       <select aria-label="Overview channel" value={channel} onChange={(event) => setChannel(event.target.value)}><option value="all">All channels</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="web">Web</option></select>
       <span className="si-metric-note">{real ? "Counts reflect persisted conversations" : "Fixture data · demonstration only"}</span>
       <ReferenceLink href="/integrations">Manage integrations</ReferenceLink>
+      <ReferenceLink href="/ai-quality?tab=failures">Inspect failure examples</ReferenceLink>
     </FilterHinge>
     <OperationalWorkspace className="si-overview-workspace" title="Conversations" tabs={<WorkspaceTabs items={[{id:"all",label:"All",count:conversations.length},{id:"unread",label:"Unread",count:unread.length},{id:"open",label:"Open",count:open.length}]} active={view} onChange={setView} />} master={<>
       {visible.slice(0, 5).map((item) => <button key={item.id} className={`si-reference-row ${current?.id === item.id ? "is-selected" : ""}`} aria-pressed={current?.id === item.id} onClick={() => setSelected(item.id)}><span className="si-mini-avatar">{item.customer.name.slice(0,2).toUpperCase()}</span><span className="si-row-copy"><strong>{item.subject}</strong><span>{item.providerLabel ?? item.channel} · {item.customer.name}</span></span><span className="si-row-value">{item.priority === "untriaged" ? "Untriaged" : item.priority}</span></button>)}
