@@ -14,7 +14,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:check": "drizzle-kit check",
     "test:server": "vitest run tests/server",
-    "dev:gmail": "NODE_OPTIONS='--no-network-family-autoselection --dns-result-order=ipv4first' next dev --hostname 127.0.0.1"
+    "dev:gmail": "NODE_OPTIONS='--no-network-family-autoselection --dns-result-order=ipv4first' next dev --hostname 127.0.0.1",
+    "ai:smoke": "node --env-file=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.ai-smoke.config.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",

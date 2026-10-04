@@ -13,7 +13,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/support_intelligence
       SUPPORT_DATA_MODE: mock
-      OPENAI_API_KEY: ""
+      GROQ_API_KEY: ""
+      GEMINI_API_KEY: ""
+      HF_TOKEN: ""
       GMAIL_TOKEN_ENCRYPTION_KEY: MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
       GMAIL_OAUTH_STATE_SECRET: phase-f2-ci-state-secret-not-production
     services:

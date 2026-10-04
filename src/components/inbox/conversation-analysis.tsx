@@ -39,6 +39,7 @@ export function ConversationAnalysisPanel({ detail }: { detail: ConversationDeta
       <Badge tone={status === "completed" ? "success" : status === "failed" ? "danger" : "warning"}>{status === "completed" ? "Complete" : status}</Badge>
     </div>
     {result ? <>
+      <p className="mt-2 text-[11px] text-[var(--muted-foreground)]">{analysis?.provider} · {analysis?.model}</p>
       <p className="mt-2 text-sm leading-6">{result.summary}</p>
       <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
         {[
@@ -46,7 +47,7 @@ export function ConversationAnalysisPanel({ detail }: { detail: ConversationDeta
           ["Language", result.language], ["Intent", result.intent.replaceAll("_", " ")],
           ["Risk", result.riskFlags.join(", ") || "None identified"], ["Impact", result.impact.replaceAll("_", " ")],
           ["Customer blocked", result.customerBlocked ? "Yes" : "No"], ["Route", result.route.replaceAll("_", " ")],
-          ["Requested action", result.requestedAction], ["Priority", analysis?.priority ?? "Untriaged"],
+          ["Requested action", result.requestedAction ?? "Not stated"], ["Priority", analysis?.priority ?? "Untriaged"],
         ].map(([label, value]) => <div key={label} className="rounded-md bg-[var(--surface-2)] p-2.5"><dt className="text-[var(--muted-foreground)]">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
       </dl>
       {result.entities.length ? <div className="mt-2 flex flex-wrap gap-1">{result.entities.map((entity, index) => <Badge key={index}>{entity.type.replaceAll("_", " ")}: {entity.value}</Badge>)}</div> : null}
@@ -57,9 +58,9 @@ export function ConversationAnalysisPanel({ detail }: { detail: ConversationDeta
     </div>
     {detail.source === "gmail" ? <div className="mt-3">
       <Button size="sm" onClick={run} disabled={!canAnalyze || running}>{running ? "Analyzing…" : status === "failed" ? "Retry analysis" : status === "completed" ? "Analyze again" : "Analyze conversation"}</Button>
-      <p className="mt-2 text-[11px] leading-5 text-[var(--muted-foreground)]">{canAnalyze ? "This action sends the subject and recent inbound message text to OpenAI for triage. It does not send a customer reply." : "Configure OPENAI_API_KEY on the server to enable real triage."}</p>
+      <p className="mt-2 text-[11px] leading-5 text-[var(--muted-foreground)]">{canAnalyze ? "This action sends the subject and recent inbound text to the configured AI providers for triage. It does not send a customer reply." : `Configure ${analysis?.requiredKey ?? "GROQ_API_KEY"} on the server to enable real triage.`}</p>
     </div> : <p className="mt-3 text-xs text-[var(--muted-foreground)]">WhatsApp analysis is not enabled in P2A.</p>}
     {error || analysis?.error ? <p role="alert" className="mt-2 text-xs text-[var(--danger)]">{error || analysis?.error?.message}</p> : null}
-    {analysis?.id ? <details className="mt-3 text-[10px] text-[var(--muted-foreground)]"><summary className="cursor-pointer">Analysis provenance</summary><div className="mt-2 break-words leading-5">{analysis.provider} · {analysis.model}<br />{analysis.promptVersion} · {analysis.workflowVersion} · {analysis.priorityPolicyVersion}<br />{analysis.startedAt ? `Started ${new Date(analysis.startedAt).toLocaleString()}` : null}<br />{analysis.finishedAt ? `Finished ${new Date(analysis.finishedAt).toLocaleString()}` : null}{analysis.inputTruncated ? <div>Input was limited to recent message excerpts.</div> : null}</div></details> : null}
+    {analysis?.id ? <details className="mt-3 text-[10px] text-[var(--muted-foreground)]"><summary className="cursor-pointer">Analysis provenance</summary><div className="mt-2 break-words leading-5">{analysis.provider} · {analysis.model}<br />{analysis.promptVersion} · {analysis.workflowVersion} · {analysis.priorityPolicyVersion}<br />{analysis.startedAt ? `Started ${new Date(analysis.startedAt).toLocaleString()}` : null}<br />{analysis.finishedAt ? `Finished ${new Date(analysis.finishedAt).toLocaleString()}` : null}<div>{analysis.latencyMs !== undefined ? `${analysis.latencyMs} ms` : ""} · {analysis.usage?.inputTokens ?? "—"} input / {analysis.usage?.outputTokens ?? "—"} output tokens</div><div>Input messages: {analysis.inputMessageIds?.length ?? 0}</div><div>Source hash: {analysis.sourceHash}</div><div>Configuration: {analysis.configurationVersion}</div>{analysis.providerAttempts?.map((attempt, index) => <div key={index}>{attempt.provider} · {attempt.model} · {attempt.status} · {attempt.latencyMs} ms{attempt.errorCode ? ` · ${attempt.errorCode}` : ""}</div>)}{analysis.inputTruncated ? <div>Input was limited to recent message excerpts.</div> : null}</div></details> : null}
   </section>;
 }

@@ -13,7 +13,7 @@ const facts = {
 const reason = "Duplicate-charge financial risk with the customer blocked.";
 const completed: ConversationAnalysis = {
   id: "synthetic-analysis", status: "completed", configured: true, stale: false,
-  provider: "openai", model: "gpt-4.1-mini-2025-04-14", promptVersion: "triage-facts-v1",
+  provider: "groq", model: "openai/gpt-oss-120b", promptVersion: "triage-facts-v2",
   workflowVersion: "triage-workflow-v1", priorityPolicyVersion: "triage-priority-v1",
   startedAt: "2026-10-04T10:00:00Z", finishedAt: "2026-10-04T10:00:01Z",
   result: facts, priority: "high", priorityReasons: [reason],
@@ -94,7 +94,7 @@ test.describe("P2A triage foundation with mocked UI APIs", () => {
     const calls = await mockInbox(page, { status: "pending", configured: false, stale: false });
     await page.goto(`/inbox/${conversationId}`);
     await expect(page.getByRole("button", { name: "Analyze conversation", exact: true })).toBeDisabled();
-    await expect(page.getByText("Configure OPENAI_API_KEY on the server to enable real triage.")).toBeVisible();
+    await expect(page.getByText("Configure GROQ_API_KEY on the server to enable real triage.")).toBeVisible();
     await expectUnclaimedCapabilities(page);
     expect(calls.analysesRequested()).toBe(0);
     expect(calls.repliesRequested()).toBe(0);
