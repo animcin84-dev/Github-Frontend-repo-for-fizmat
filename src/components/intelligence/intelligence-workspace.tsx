@@ -111,7 +111,7 @@ function SignalChart({ issue }: { issue: EmergingIssue }) {
         </div>
         <Link href={`/intelligence/${issue.id}`} className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline">Open investigation <ArrowRight className="size-3" /></Link>
       </div>
-      <div className="h-[154px] p-3">
+      <div className="h-[112px] p-2">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ left: -14, right: 12, top: 12, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" />
@@ -194,8 +194,8 @@ export function IntelligenceWorkspace() {
       <div className="si-detail-scroll">
         <div className="si-detail-header"><div><div className="si-label">Selected issue · {selected.relatedProductArea}</div><h2>{selected.title}</h2></div><Badge tone={statusTone[selected.status]}>{selected.status}</Badge></div>
         <div className="si-detail-grid"><div className="si-detail-tile"><span>Impact</span><strong>{selected.uniqueCustomerCount} customers</strong><span>{selected.conversationCount} conversations</span></div><div className="si-detail-tile"><span>Evidence</span><strong className="capitalize">{selected.evidenceState.replaceAll("_"," ")}</strong><span>Root cause unconfirmed</span></div><div className="si-detail-tile"><span>Knowledge</span><strong>{selected.relatedKnowledgeIds.length} sources</strong><span>Linked for review</span></div></div>
+        <p className="my-2 text-xs leading-5">{selected.summary}</p>
         <SignalChart issue={selected}/>
-        <p className="mt-3 text-xs leading-5">{selected.summary}</p>
         <div className="mt-3 flex flex-wrap gap-2"><ReferenceLink href={`/inbox?q=${encodeURIComponent(selected.commonPhrases[0]?.phrase ?? selected.title)}`}>View conversations</ReferenceLink><ReferenceLink href={`/knowledge?tab=sources&source=${selected.relatedKnowledgeIds[0] ?? ""}`}><DatabaseZap size={13}/>Related knowledge</ReferenceLink><ReferenceLink href={selected.id === "issue-duplicate-payment" ? "/automation?tab=procedures&procedure=procedure-refund" : selected.id === "issue-subscription-pause" ? "/automation?tab=procedures&procedure=procedure-subscription-cancel" : "/automation?tab=rollouts"}><ShieldCheck size={13}/>Affected automation</ReferenceLink></div>
         <details className="mt-4 text-xs"><summary className="cursor-pointer">Controlled demo actions</summary><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => act(selected.id,"watching","Issue added to watch list")}><BellRing size={13}/>Watch</Button><Button size="sm" onClick={() => act(selected.id,"incident draft","Incident draft created")}><AlertTriangle size={13}/>Create incident</Button></div><p className="mt-2 text-[11px]">Local simulation only. Incident and ownership state is not persisted.</p></details>
         {mockStates[selected.id] ? <p className="mt-3 text-xs">Mock state: {mockStates[selected.id]}</p> : null}

@@ -96,6 +96,32 @@ test("workspace tabs support roving focus and keyboard selection with URL-backed
   await expect(page.getByLabel("Knowledge source details", { exact: true })).toBeVisible();
 });
 
+test("desktop operator workspaces begin early and keep useful list density", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const geometry = [];
+  for (const [route, title] of routes) {
+    await page.goto(route);
+    await expect(page.getByRole("heading", { name: title, exact: true, level: 1 })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Workspace summary", exact: true })).toBeVisible();
+    const workspace = page.locator(".si-operational-workspace").filter({ visible: true });
+    await expect(workspace).toBeVisible();
+    const bounds = await workspace.boundingBox();
+    expect(bounds!.y, `${route} workspace start`).toBeLessThanOrEqual(360);
+    expect(bounds!.height, `${route} workspace height`).toBeGreaterThanOrEqual(530);
+    geometry.push({ route, ...bounds });
+    if (route === "/overview" || route === "/inbox") {
+      const rows = workspace.locator(".si-master-pane button.si-reference-row,.si-master-pane button.si-inbox-row");
+      await expect(rows.first()).toBeVisible();
+      const visibleRows = await rows.evaluateAll((items) => {
+        const pane = items[0]?.closest(".si-master-pane")?.getBoundingClientRect();
+        return items.filter((item) => { const row = item.getBoundingClientRect(); return pane && row.top >= pane.top && row.bottom <= pane.bottom; }).length;
+      });
+      expect(visibleRows, `${route} fully visible rows`).toBeGreaterThanOrEqual(7);
+    }
+  }
+  await testInfo.attach("operator-geometry", { body: JSON.stringify(geometry, null, 2), contentType: "application/json" });
+});
+
 test("source selection updates the detail panel and survives reload", async ({ page }) => {
   await page.goto("/knowledge?tab=sources&source=ks-payment-auth");
   const workspace = page.getByRole("region", { name: "Knowledge documents", exact: true });
