@@ -222,8 +222,8 @@ export const qualityTrend: QualityTrendPoint[] = Array.from({ length: 360 }, (_,
 });
 
 export const modelVersions: ModelVersion[] = [
-  { id: "support-model-a", label: "support-model-a", deployedAt: "2026-08-18T08:00:00Z", note: "Previous demo draft model identifier." },
-  { id: "support-model-b", label: "support-model-b", deployedAt: "2026-09-15T08:00:00Z", note: "Current demo draft model identifier." },
+  { id: "support-model-a", label: "support-model-a", deployedAt: "2026-08-18T08:00:00Z", note: "Previous reference draft model identifier." },
+  { id: "support-model-b", label: "support-model-b", deployedAt: "2026-09-15T08:00:00Z", note: "Current reference draft model identifier." },
 ];
 
 export const promptVersions: PromptVersion[] = [

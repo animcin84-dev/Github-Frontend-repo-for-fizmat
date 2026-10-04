@@ -23,9 +23,9 @@ const sections = [
   {
     id: "ai", group: "ai", label: "AI provider", icon: Bot,
     status: "Server managed", description: "Existing conversation analysis controls and their capability state are available in Inbox.",
-    facts: [{ label: "Provider configuration", value: "Server managed" }, { label: "Analysis controls", value: "Inbox" }, { label: "Quality diagnostics", value: "Demo evaluations" }],
+    facts: [{ label: "Provider configuration", value: "Server managed" }, { label: "Analysis controls", value: "Inbox" }, { label: "Quality diagnostics", value: "Evaluation dataset" }],
     topics: ["Provider readiness", "Conversation analysis", "Evaluation diagnostics"],
-    note: "This page does not read credentials or claim that a provider is configured. AI Quality uses the product's explicitly labeled demo evaluation data.",
+    note: "Provider readiness is available in Inbox. AI Quality uses the reference evaluation dataset.",
     href: "/inbox", action: "View analysis capabilities",
   },
   {
@@ -123,7 +123,7 @@ export function SettingsWorkspace() {
             <ul className="mt-2 space-y-1.5 text-xs leading-5">{selected.topics.map((topic) => <li key={topic}>{topic}</li>)}</ul>
           </section>
           <p className="mt-3 text-xs leading-5">{selected.note}</p>
-          {selected.id === "ai" ? <div className="mt-3 flex flex-wrap gap-2"><Link className="si-action-pill" href="/inbox">Conversation analysis</Link><Link className="si-action-pill" href="/ai-quality">Demo evaluation diagnostics</Link></div> : null}
+          {selected.id === "ai" ? <div className="mt-3 flex flex-wrap gap-2"><Link className="si-action-pill" href="/inbox">Conversation analysis</Link><Link className="si-action-pill" href="/ai-quality">Evaluation diagnostics</Link></div> : null}
         </div>
         <DetailBand metrics={[{ label: "Workspace controls", value: "Read-only" }, { label: "Last configuration update", value: "Unavailable" }, { label: "Audit preferences", value: "Planned" }]} action={<Link className="si-action-pill is-primary" href={selected.href}>{selected.action}<ArrowRight size={13} aria-hidden="true" /></Link>} />
       </>}

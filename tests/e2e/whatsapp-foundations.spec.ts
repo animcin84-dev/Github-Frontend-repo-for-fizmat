@@ -40,9 +40,9 @@ test.describe("WhatsApp Inbox with synthetic API responses", () => {
     await page.getByRole("button", { name: "Details", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "WhatsApp conversation details" });
     await expect(dialog.getByText("Replies unavailable", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Approve & send" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Approve draft" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Send real email" })).toHaveCount(0);
-    await expect(page.getByText("SIMULATION", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("PREVIEW", { exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   });
 

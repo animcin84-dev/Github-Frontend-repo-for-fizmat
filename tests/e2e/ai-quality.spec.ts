@@ -66,7 +66,7 @@ test.describe("AI Quality Shadow Mode", () => {
     await expect(page.getByText("Automation readiness by intent")).toBeVisible();
     await expect(page.getByText("Never autonomous")).toBeVisible();
 
-    await page.getByLabel("Shadow simulation").selectOption("shadow-002");
+    await page.getByLabel("Shadow comparison", { exact: true }).selectOption("shadow-002");
     await expect(page).toHaveURL(/shadowId=shadow-002/);
     await expect(page.getByText("Actual historical resolution")).toBeVisible();
     await expect(page.getByText("What AI would propose today")).toBeVisible();

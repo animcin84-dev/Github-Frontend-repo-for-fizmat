@@ -136,8 +136,8 @@ export function ApprovalPreview({
           <div className="rounded-md border border-[var(--border)] p-3 text-xs"><div className="font-semibold">Expected external change</div><p className="mt-1 leading-5 text-[var(--muted-foreground)]">{request.expectedExternalChange}</p></div>
           {secondStep ? (
             <div className="rounded-md border border-[color-mix(in_srgb,var(--warning)_35%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_5%,var(--surface-1))] p-3">
-              <div className="flex items-start gap-2"><AlertTriangle className="mt-0.5 size-4 text-[var(--warning)]" /><div><div className="text-sm font-semibold">Confirm financial action</div><p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">This is a mock approval only. The demo records the decision but sends no real refund.</p></div></div>
-              <div className="mt-3 flex justify-end gap-2"><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={confirmApprove}>Confirm mock approval</Button></div>
+              <div className="flex items-start gap-2"><AlertTriangle className="mt-0.5 size-4 text-[var(--warning)]" /><div><div className="text-sm font-semibold">Confirm financial action</div><p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">Approval is recorded for this session. No refund is issued.</p></div></div>
+              <div className="mt-3 flex justify-end gap-2"><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={confirmApprove}>Confirm local approval</Button></div>
             </div>
           ) : (
             <div className="flex flex-wrap justify-between gap-2 border-t border-[var(--border)] pt-4">

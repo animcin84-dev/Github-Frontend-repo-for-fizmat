@@ -179,13 +179,13 @@ export function IntelligenceWorkspace() {
 
   const act = (id: string, state: string, message: string) => {
     setMockStates((current) => ({ ...current, [id]: state }));
-    toast.success(message, { description: "Mock control only — no backend incident state was changed." });
+    toast.success(message, { description: "Change applies to this session." });
   };
 
   const opportunities = categoryCounts.slice(0,3).map(([label,value]) => ({label,value}));
   return <div className="si-page">
-    <RouteHeader title="Intelligence" note={<Badge>Demo telemetry</Badge>} actions={<ReferenceLink href="/automation?tab=procedures">Automation ↗</ReferenceLink>} />
-    <ReferenceSummary metrics={[{label:"Active issue clusters",value:issues.filter((item) => item.status !== "resolved").length},{label:"Rising issues",value:emerging},{label:"Active incidents",value:activeIncidents}]} activity={issues.slice(0,4).map((item) => ({label:item.relatedProductArea,value:item.conversationCount,marker:item.title.slice(0,1)}))} activityLabel="Demonstration issue volumes" signal={{label:"Conversations represented",value:represented.toLocaleString(),note:"Demo",options:opportunities,action:<ReferenceLink href="/automation?tab=procedures">Review ↗</ReferenceLink>}} />
+    <RouteHeader title="Intelligence" note={<Badge>Issue workspace</Badge>} actions={<ReferenceLink href="/automation?tab=procedures">Automation ↗</ReferenceLink>} />
+    <ReferenceSummary metrics={[{label:"Active issue clusters",value:issues.filter((item) => item.status !== "resolved").length},{label:"Rising issues",value:emerging},{label:"Active incidents",value:activeIncidents}]} activity={issues.slice(0,4).map((item) => ({label:item.relatedProductArea,value:item.conversationCount,marker:item.title.slice(0,1)}))} activityLabel="Issue volumes" signal={{label:"Conversations represented",value:represented.toLocaleString(),note:"Issue dataset",options:opportunities,action:<ReferenceLink href="/automation?tab=procedures">Review ↗</ReferenceLink>}} />
     <FilterBar status={status} setStatus={setStatus} severity={severity} setSeverity={setSeverity} range={range} setRange={setRange} area={area} setArea={setArea} minSample={minSample} setMinSample={setMinSample} sort={sort} setSort={setSort} areas={areas} />
     <OperationalWorkspace detailKey={selected.id} className="si-route-workspace si-intelligence-workspace" title="Issue clusters" tabs={<WorkspaceTabs label="Issue views" items={[{id:"",label:"All",count:issues.length},{id:"emerging",label:"Rising",count:emerging},{id:"incident",label:"Incidents",count:activeIncidents}]} active={status} onChange={(id) => setStatus(id || null)} />} master={<>
       {filtered.map((issue) => <div key={issue.id} className={cn("si-reference-row",selected.id === issue.id && "is-selected")}><span className="si-mini-avatar">{issue.relatedProductArea.slice(0,1)}</span><button className="si-row-copy text-left" aria-pressed={issue.id === selected.id} onClick={() => setSignal(issue.id)}><strong>{issue.title}</strong><span>{issue.conversationCount} conversations · +{issue.growthPercent}%</span></button><Badge tone={severityTone[issue.severity]}>{issue.severity}</Badge><Link href={`/intelligence/${issue.id}`} aria-label={`Investigate ${issue.title}`} className="si-circle-control"><ArrowRight size={13}/></Link></div>)}
@@ -197,11 +197,11 @@ export function IntelligenceWorkspace() {
         <p className="my-2 text-xs leading-5">{selected.summary}</p>
         <SignalChart issue={selected}/>
         <div className="mt-3 flex flex-wrap gap-2"><ReferenceLink href={`/inbox?q=${encodeURIComponent(selected.commonPhrases[0]?.phrase ?? selected.title)}`}>View conversations</ReferenceLink><ReferenceLink href={`/knowledge?tab=sources&source=${selected.relatedKnowledgeIds[0] ?? ""}`}><DatabaseZap size={13}/>Related knowledge</ReferenceLink><ReferenceLink href={selected.id === "issue-duplicate-payment" ? "/automation?tab=procedures&procedure=procedure-refund" : selected.id === "issue-subscription-pause" ? "/automation?tab=procedures&procedure=procedure-subscription-cancel" : "/automation?tab=rollouts"}><ShieldCheck size={13}/>Affected automation</ReferenceLink></div>
-        <details className="mt-4 text-xs"><summary className="cursor-pointer">Controlled demo actions</summary><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => act(selected.id,"watching","Issue added to watch list")}><BellRing size={13}/>Watch</Button><Button size="sm" onClick={() => act(selected.id,"incident draft","Incident draft created")}><AlertTriangle size={13}/>Create incident</Button></div><p className="mt-2 text-[11px]">Local simulation only. Incident and ownership state is not persisted.</p></details>
-        {mockStates[selected.id] ? <p className="mt-3 text-xs">Mock state: {mockStates[selected.id]}</p> : null}
+        <details className="mt-4 text-xs"><summary className="cursor-pointer">Issue actions</summary><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => act(selected.id,"watching","Issue added to watch list")}><BellRing size={13}/>Watch</Button><Button size="sm" onClick={() => act(selected.id,"incident draft","Incident draft created")}><AlertTriangle size={13}/>Create incident</Button></div><p className="mt-2 text-[11px]">Incident and ownership changes apply to this session.</p></details>
+        {mockStates[selected.id] ? <p className="mt-3 text-xs">Session status: {mockStates[selected.id]}</p> : null}
       </div>
       <DetailBand metrics={[{label:"Conversations",value:selected.conversationCount},{label:"Customers",value:selected.uniqueCustomerCount},{label:"Growth",value:`+${selected.growthPercent}%`}]} action={<Button variant="primary" size="sm" onClick={() => act(selected.id,"investigating","Issue marked for investigation")}><Search size={13}/>Investigate</Button>} />
     </>} />
-    <p className="si-metric-note mt-3">Demonstration telemetry · sample size and growth indicate signals; correlation does not confirm root cause.</p>
+    <p className="si-metric-note mt-3">Issue dataset · sample size and growth indicate signals; correlation does not confirm root cause.</p>
   </div>;
 }

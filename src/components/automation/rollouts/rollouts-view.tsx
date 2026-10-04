@@ -100,8 +100,8 @@ function KillSwitch({ paused, setPaused }: { paused: boolean; setPaused: (value:
     return (
       <Surface className="border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3"><CirclePause className="mt-0.5 size-5 text-[var(--danger)]" /><div><div className="text-sm font-semibold">All autonomous automation is paused</div><p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">Copilot suggestions remain available. Human workflows remain active. This is mock frontend state only.</p></div></div>
-          <Button onClick={() => { setPaused(false); toast.success("Mock automation resumed", { description: "No backend execution state exists in this demo." }); }}>Resume mock automation</Button>
+          <div className="flex items-start gap-3"><CirclePause className="mt-0.5 size-5 text-[var(--danger)]" /><div><div className="text-sm font-semibold">All autonomous automation is paused</div><p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">Copilot suggestions remain available. Human workflows remain active. Pause applies to this session.</p></div></div>
+          <Button onClick={() => { setPaused(false); toast.success("Automation preview resumed", { description: "Session controls updated. External execution remains disabled." }); }}>Resume preview</Button>
         </div>
       </Surface>
     );
@@ -123,7 +123,7 @@ function KillSwitch({ paused, setPaused }: { paused: boolean; setPaused: (value:
             <div className="space-y-4 p-4">
               <div className="rounded-md border border-[color-mix(in_srgb,var(--danger)_28%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_4%,var(--surface-1))] p-3 text-xs leading-5"><strong>Autonomous executions stop.</strong><br />Copilot suggestions remain available.<br />Human workflows remain active.</div>
               <label className="block text-xs font-medium">Type <span className="font-mono">PAUSE</span> to confirm<input autoFocus value={confirmText} onChange={(event) => setConfirmText(event.target.value)} className="mt-2 h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface-1)] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]" /></label>
-              <div className="flex justify-end gap-2"><Button onClick={() => setConfirming(false)}>Cancel</Button><Button variant="danger" disabled={confirmText !== "PAUSE"} onClick={() => { setPaused(true); setConfirming(false); setConfirmText(""); toast.success("Mock kill switch engaged", { description: "Autonomous execution is visually paused in this session only." }); }}>Confirm pause</Button></div>
+              <div className="flex justify-end gap-2"><Button onClick={() => setConfirming(false)}>Cancel</Button><Button variant="danger" disabled={confirmText !== "PAUSE"} onClick={() => { setPaused(true); setConfirming(false); setConfirmText(""); toast.success("Session automation paused", { description: "Autonomous execution is visually paused in this session only." }); }}>Confirm pause</Button></div>
             </div>
           </section>
         </div>
@@ -148,7 +148,7 @@ export function RolloutsView({ data }: { data: WorkspaceData }) {
       return;
     }
     setOverrides((current) => ({ ...current, [rollout.id]: { mode, percentage } }));
-    toast.success("Mock rollout updated", { description: `${rollout.intent}: ${mode} · ${percentage}%` });
+    toast.success("Session rollout updated", { description: `${rollout.intent}: ${mode} · ${percentage}%` });
   };
 
   return (

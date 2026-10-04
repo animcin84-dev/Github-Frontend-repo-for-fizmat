@@ -48,9 +48,9 @@ test.describe("Phase E Automation", () => {
     await expect(dialog.getByText("$18.20", { exact: true })).toBeVisible();
     await dialog.getByRole("button", { name: "Review & approve" }).click();
     await expect(dialog.getByText("Confirm financial action")).toBeVisible();
-    await dialog.getByRole("button", { name: "Confirm mock approval" }).click();
+    await dialog.getByRole("button", { name: "Confirm local approval" }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByText("Mock approval recorded")).toBeVisible();
+    await expect(page.getByText("Approval recorded locally")).toBeVisible();
   });
 
   test("blocked refund and human-only security scenarios cannot execute", async ({ page }) => {
@@ -83,7 +83,7 @@ test.describe("Phase E Automation", () => {
     const order = page.getByLabel("Rollout for Order tracking");
     await order.selectOption("expanded:50");
     await expect(order).toHaveValue("expanded:50");
-    await expect(page.getByText("Mock rollout updated")).toBeVisible();
+    await expect(page.getByText("Session rollout updated")).toBeVisible();
 
     const refund = page.getByLabel("Rollout for Refund request");
     await refund.selectOption("canary:5");

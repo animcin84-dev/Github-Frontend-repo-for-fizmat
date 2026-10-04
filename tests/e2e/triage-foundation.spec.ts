@@ -76,8 +76,8 @@ async function expectUnclaimedCapabilities(page: Page) {
   ]) {
     await expect(panel.locator("div.rounded-md").filter({ has: page.getByText(label, { exact: true }) }).getByText(state, { exact: true })).toBeVisible();
   }
-  await expect(page.getByRole("button", { name: "Approve & send", exact: true })).toHaveCount(0);
-  await expect(page.getByText("SIMULATION", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Approve draft", exact: true })).toHaveCount(0);
+  await expect(page.getByText("PREVIEW", { exact: true })).toHaveCount(0);
 }
 
 async function expectCompletedFacts(page: Page) {

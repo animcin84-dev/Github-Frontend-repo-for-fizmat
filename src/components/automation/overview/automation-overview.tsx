@@ -61,7 +61,7 @@ export function AutomationOverview({ data, embedded = false }: { data: Workspace
     setApprovalState((state) => ({ ...state, [selectedApproval.id]: "approved" }));
     setSecondStep(false);
     setApprovalId("");
-    toast.success("Mock approval recorded", { description: "No external action was executed." });
+    toast.success("Approval recorded locally", { description: "No external action was executed." });
   };
 
   const reject = () => {
@@ -69,7 +69,7 @@ export function AutomationOverview({ data, embedded = false }: { data: Workspace
     setApprovalState((state) => ({ ...state, [selectedApproval.id]: "rejected" }));
     setSecondStep(false);
     setApprovalId("");
-    toast.success("Mock approval rejected", { description: "Execution remains blocked." });
+    toast.success("Approval rejected locally", { description: "Execution remains blocked." });
   };
 
   return (
@@ -79,7 +79,7 @@ export function AutomationOverview({ data, embedded = false }: { data: Workspace
       <Surface className="overflow-hidden">
         <div className="grid grid-cols-2 gap-y-3 py-3 sm:grid-cols-3 xl:grid-cols-6">
           <CompactStat label="Automation status" value="Limited live" note={`${controlledCount} controlled · ${approvalCount} approval · ${humanOnlyCount} human-only`} tone="success" />
-          <CompactStat label="Actions · 24h" value={String(data.summary.actionsLast24h)} note="mock executions" />
+          <CompactStat label="Actions · 24h" value={String(data.summary.actionsLast24h)} note="Local action history" />
           <CompactStat label="Approval rate" value={`${Math.round(data.summary.approvalRate * 100)}%`} note="decided approvals" />
           <CompactStat label="Blocked decisions" value={String(data.summary.blockedDecisions)} note="policy / prerequisite" tone="warning" />
           <CompactStat label="Failed executions" value={String(data.summary.failedExecutions)} note="safe failure path" tone="danger" />
@@ -214,7 +214,7 @@ export function AutomationOverview({ data, embedded = false }: { data: Workspace
       </div>
 
       <Surface className="overflow-hidden">
-        <div className="border-b border-[var(--border)] px-4 py-3"><h2 className="text-sm font-semibold">Required demo decisions</h2><p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Contrasting cases show explicit gates instead of “AI thinks this is safe”.</p></div>
+        <div className="border-b border-[var(--border)] px-4 py-3"><h2 className="text-sm font-semibold">Required decisions</h2><p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Contrasting cases show explicit gates instead of “AI thinks this is safe”.</p></div>
         <div className="grid gap-0 md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-[var(--border)]">
           {[
             ["Where is my order?", "lookup_order", "Policy allows", "success", "Read-only execution"],

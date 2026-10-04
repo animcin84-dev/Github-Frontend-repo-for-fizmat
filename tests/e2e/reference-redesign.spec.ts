@@ -152,7 +152,7 @@ test.describe("reference shell and database-aware Overview", () => {
     await expect(realAnalyses).toContainText("2");
     await expect(summary.getByText("Persisted triage", { exact: true }).locator("..").getByText("2", { exact: true })).toBeVisible();
     await expect(page.getByText("Counts reflect persisted conversations", { exact: true })).toBeVisible();
-    await expect(page.getByText(/Fixture data|Demo analysis|Simulated analyses/)).toHaveCount(0);
+    await expect(page.getByText(/Local dataset|Preview analysis|Preview analyses/)).toHaveCount(0);
     expect(calls.unexpected).toEqual([]);
     expect([...new Set(calls.requested)].sort()).toEqual(["GET /api/conversations", "GET /api/integrations/gmail/status"]);
   });
@@ -167,7 +167,7 @@ test.describe("reference shell and database-aware Overview", () => {
     await expect(page.getByText("Connect a mailbox and sync real messages to begin.", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open integrations", exact: true })).toHaveAttribute("href", "/integrations");
     await expect(page.getByRole("link", { name: "Open conversation ↗", exact: true })).toHaveCount(0);
-    await expect(page.getByText(/Duplicate card charge|Fixture data|Simulated analyses/)).toHaveCount(0);
+    await expect(page.getByText(/Duplicate card charge|Local dataset|Preview analyses/)).toHaveCount(0);
     expect(calls.unexpected).toEqual([]);
   });
 });

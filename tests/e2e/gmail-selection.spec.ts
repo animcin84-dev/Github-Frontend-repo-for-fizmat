@@ -47,7 +47,7 @@ test.describe("database-mode inbox selection with synthetic API responses", () =
       expect(requests.get(page)).not.toContain("conv-00001");
       await page.reload();
       await expect(page.getByRole("heading", { name: item.subject })).toBeVisible();
-      await expect(page.getByText("SIMULATION", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("PREVIEW", { exact: true })).toHaveCount(0);
       await expect(page.getByText("Not generated yet", { exact: true })).toBeVisible();
       await expect(page.getByText("Not evaluated", { exact: true }).first()).toBeVisible();
     });

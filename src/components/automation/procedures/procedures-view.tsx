@@ -91,7 +91,7 @@ function ProcedureInspector({ procedure, data, close, embedded = false }: { proc
         </section>
 
         <section className="rounded-md border border-[color-mix(in_srgb,var(--ai)_24%,var(--border))] bg-[color-mix(in_srgb,var(--ai)_4%,var(--surface-1))] p-3">
-          <div className="flex items-start justify-between gap-3"><div><div className="text-xs font-semibold">Historical procedure simulation</div><p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">Replay stops before any real external mutation.</p></div><Button size="sm" onClick={() => { setSimulated(true); toast.success("Historical simulation complete", { description: "No external system was mutated." }); }}><Play className="size-3.5" />Run historical replay</Button></div>
+          <div className="flex items-start justify-between gap-3"><div><div className="text-xs font-semibold">Historical procedure replay</div><p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">Replay stops before any real external mutation.</p></div><Button size="sm" onClick={() => { setSimulated(true); toast.success("Historical replay complete", { description: "No external system was mutated." }); }}><Play className="size-3.5" />Run historical replay</Button></div>
           {simulated && simulation ? (
             <div className="mt-4 space-y-3">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -106,7 +106,7 @@ function ProcedureInspector({ procedure, data, close, embedded = false }: { proc
               </div>
               {simulation.regressions.length ? <div className="rounded-md border border-[color-mix(in_srgb,var(--danger)_30%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_4%,var(--surface-1))] p-3"><div className="flex items-center gap-2"><AlertTriangle className="size-4 text-[var(--danger)]" /><span className="text-xs font-semibold">Regressions</span></div>{simulation.regressions.map((item) => <div key={item.caseId} className="mt-2 text-xs text-[var(--muted-foreground)]">{item.caseId}: {item.from} → <strong className="text-[var(--danger)]">{item.to}</strong></div>)}</div> : <div className="text-xs text-[var(--success)]">No sampled unsafe regressions in this replay.</div>}
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Sample simulation trace</div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">Replay trace</div>
                 <div className="mt-2 space-y-2">{simulation.sampleTrace.map((item, index) => <div key={`${item.state}-${index}`} className="flex gap-2 text-xs"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--border-strong)]" /><div><strong>{item.state}</strong><div className="text-[var(--muted-foreground)]">{item.detail}</div></div></div>)}</div>
               </div>
             </div>
@@ -120,7 +120,7 @@ function ProcedureInspector({ procedure, data, close, embedded = false }: { proc
 function ActionCatalog({ data }: { data: WorkspaceData }) {
   return (
     <Surface className="overflow-hidden">
-      <div className="border-b border-[var(--border)] px-4 py-3"><h2 className="text-sm font-semibold">Controlled action catalog</h2><p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Mock registry only. No real provider API is connected.</p></div>
+      <div className="border-b border-[var(--border)] px-4 py-3"><h2 className="text-sm font-semibold">Controlled action catalog</h2><p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Action catalog · external execution disabled.</p></div>
       <div role="region" aria-label="Controlled action catalog table" tabIndex={0} className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[1050px] border-collapse text-left text-xs">
           <thead className="bg-[var(--surface-2)] text-[10px] uppercase tracking-[0.08em] text-[var(--muted-foreground)]"><tr>{["Action", "Provider", "Risk", "Reversible", "Identity", "Confirm", "Approval", "Timeout", "Health"].map((label) => <th key={label} className="border-b border-[var(--border)] px-3 py-2 font-medium">{label}</th>)}</tr></thead>
@@ -173,7 +173,7 @@ function ExecutionPreview({ data }: { data: WorkspaceData }) {
           </div>
           <div className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">{preview.note}</div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="primary" disabled={blocked || approval || isRefund} onClick={() => toast.success("Mock action succeeded", { description: "Result verification recorded. No external API called." })}>{blocked ? "Execution blocked" : approval ? "Approval required" : "Execute mock action"}</Button>
+            <Button variant="primary" disabled={blocked || approval || isRefund} onClick={() => toast.success("Action preview completed", { description: "Result verification recorded. No external API called." })}>{blocked ? "Execution blocked" : approval ? "Approval required" : "Run action preview"}</Button>
             <Link href={`/inbox/${preview.conversationId}`} className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--border)] px-2.5 text-xs font-medium hover:bg-[var(--surface-2)]">Conversation <ArrowRight className="size-3" /></Link>
           </div>
         </div>

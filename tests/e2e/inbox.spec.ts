@@ -30,14 +30,15 @@ test.describe("inbox critical flows", () => {
     await expect(page).toHaveURL(/\/knowledge\?tab=sources&source=ks-payment-auth/);
 
     await page.goto("/inbox/conv-00001");
-    await page.getByRole("button", { name: "Approve & send" }).click();
-    await expect(page.getByText("Reply approved and marked sent in mock state")).toBeVisible();
+    await page.getByRole("button", { name: "Approve draft" }).click();
+    await expect(page.getByText("Reply approved locally")).toBeVisible();
+    await expect(page.getByText("No email was sent.")).toBeVisible();
   });
 
   test("unsafe subscription draft cannot be sent", async ({ page }) => {
     await page.goto("/inbox/conv-00002");
     await expect(page.getByText("Needs human")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Approve & send" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Approve draft" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Escalate" }).first()).toBeVisible();
   });
 

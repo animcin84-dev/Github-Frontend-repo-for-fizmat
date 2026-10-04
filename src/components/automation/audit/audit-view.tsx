@@ -73,7 +73,7 @@ function AuditInspector({ event, data, close, embedded = false }: { event: Autom
         ) : (
           <section className="rounded-md border border-[color-mix(in_srgb,var(--success)_30%,var(--border))] bg-[color-mix(in_srgb,var(--success)_4%,var(--surface-1))] p-3">
             <div className="flex items-center gap-2"><CheckCircle2 className="size-4 text-[var(--success)]" /><div className="text-xs font-semibold">Result verified</div></div>
-            <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">The mock lifecycle records a post-execution verification step before claiming success.</p>
+            <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">The reference lifecycle includes a result verification step.</p>
           </section>
         )}
 
@@ -81,7 +81,7 @@ function AuditInspector({ event, data, close, embedded = false }: { event: Autom
           <div className="flex items-center gap-2"><RotateCcw className="size-4" /><div className="text-xs font-semibold">Rollback</div></div>
           <div className="mt-2"><Badge tone={reversible ? "success" : "danger"}>{reversible ? "Rollback available" : "Rollback unavailable"}</Badge></div>
           <p className="mt-2 text-xs text-[var(--muted-foreground)]">{reversible ? "This action class is modeled as reversible. Preview the compensating operation before any rollback decision." : "This action class is not safely reversible; recovery requires a separate operator workflow."}</p>
-          {reversible ? <button onClick={() => setRollbackPreview((value) => !value)} className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 text-xs font-medium hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><RotateCcw className="size-3.5" />{rollbackPreview ? "Hide rollback preview" : "Preview mock rollback"}</button> : null}
+          {reversible ? <button onClick={() => setRollbackPreview((value) => !value)} className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 text-xs font-medium hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><RotateCcw className="size-3.5" />{rollbackPreview ? "Hide rollback preview" : "Preview rollback"}</button> : null}
           {rollbackPreview ? <div className="mt-3 rounded-md border border-[color-mix(in_srgb,var(--warning)_28%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_4%,var(--surface-1))] p-3 text-xs"><div className="font-semibold">Rollback preview · no mutation sent</div><div className="mt-2 grid gap-1 text-[var(--muted-foreground)]"><span>Target execution: <span className="font-mono text-[var(--foreground)]">{event.executionId ?? "not available"}</span></span><span>Compensating action: restore the previously verified provider state.</span><span>Verification: read provider state again before marking rolled back.</span></div></div> : null}
         </section>
 

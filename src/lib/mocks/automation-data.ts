@@ -609,7 +609,7 @@ export const automationProcedures: AutomationProcedure[] = [
       step("do-5", "branch", "Choose replacement/refund path", "Use policy-defined eligibility, not model confidence."),
       step("do-6", "request_confirmation", "Request confirmation", "Confirm the proposed resolution."),
       step("do-7", "human_approval", "Request approval if financial", "Refund path requires human approval."),
-      step("do-8", "execute_action", "Execute approved action", "Simulation stops before real external mutation in this demo."),
+      step("do-8", "execute_action", "Execute approved action", "Replay stops before external execution."),
       step("do-9", "verify_result", "Verify result", "Verify external state before customer confirmation."),
     ],
   },
@@ -682,7 +682,7 @@ export const procedureSimulations: ProcedureSimulation[] = [
       { state: "Identity verified", detail: "Customer/account match verified." },
       { state: "Policy evaluated", detail: "Claim path requires confirmation." },
       { state: "Customer confirmation required", detail: "Confirmation gate reached." },
-      { state: "Simulation stopped", detail: "No real external mutation executed." },
+      { state: "Replay stopped", detail: "No real external mutation executed." },
     ],
   },
   {
@@ -699,7 +699,7 @@ export const procedureSimulations: ProcedureSimulation[] = [
       { state: "Order retrieved", detail: "Order is not fulfilled." },
       { state: "Identity verified", detail: "Verified identity requirement passed." },
       { state: "Confirmation required", detail: "Exact new address preview shown." },
-      { state: "Simulation stopped", detail: "Mutation was not sent." },
+      { state: "Replay stopped", detail: "Mutation was not sent." },
     ],
   },
   {
@@ -720,7 +720,7 @@ export const procedureSimulations: ProcedureSimulation[] = [
       { state: "Identity verified", detail: "Verified." },
       { state: "Policy evaluated", detail: "Refund is eligible but approval is required." },
       { state: "Customer confirmation received", detail: "Amount confirmed." },
-      { state: "Simulation stopped", detail: "No refund API mutation executed." },
+      { state: "Replay stopped", detail: "No refund API mutation executed." },
     ],
   },
 ];
@@ -753,7 +753,7 @@ export const readinessExplanations: ReadinessExplanation[] = phaseEReadiness.map
       { label: "Identity", state: humanOnly ? "warning" : "pass", detail: humanOnly ? "Recovery evidence must be reviewed by Security." : "Required identity state can be resolved before mutation." },
       { label: "Policy", state: humanOnly ? "block" : row.policy === "human_approval" ? "warning" : "pass", detail: humanOnly ? "Human-only policy; autonomous execution prohibited." : row.policy === "human_approval" ? "Human approval required before execution." : "Policy allows controlled automation." },
       { label: "Historical evaluations", state: row.historicalPassRate < 0.85 ? "warning" : "pass", detail: `${Math.round(row.historicalPassRate * 100)}% historical pass across ${row.sampleSize.toLocaleString()} cases.`, href: "/ai-quality?tab=evaluations" },
-      { label: "Failure history", state: row.historicalPassRate < 0.85 ? "warning" : "pass", detail: row.historicalPassRate < 0.85 ? "Recent correction history requires review." : "No blocking failure concentration in the current demo snapshot.", href: "/ai-quality?tab=failures" },
+      { label: "Failure history", state: row.historicalPassRate < 0.85 ? "warning" : "pass", detail: row.historicalPassRate < 0.85 ? "Recent correction history requires review." : "No blocking failure concentration in the current reference snapshot.", href: "/ai-quality?tab=failures" },
       { label: "Action reversibility", state: row.intent === "Account takeover" ? "block" : row.intent === "Refund request" ? "warning" : "pass", detail: actionReversibility },
       { label: "Customer confirmation", state: ["Refund request", "Delivery address change", "Subscription cancellation"].includes(row.intent) ? "warning" : "pass", detail: ["Refund request", "Delivery address change", "Subscription cancellation"].includes(row.intent) ? "Explicit customer confirmation is required before mutation." : "No confirmation gate for the read-only or message-only path." },
       { label: "External system health", state: connectorProblem ? "block" : "pass", detail: connectorProblem ? "Payments connector is degraded; refund execution paused." : "Required connector is healthy." },
@@ -846,8 +846,8 @@ export const automationAuditEvents: AutomationAuditEvent[] = Array.from({ length
     lifecycle.push({ state: "blocked", at: new Date(Date.parse(timestamp) + 1800).toISOString(), detail: "Execution prohibited by policy or prerequisite gate." });
   } else {
     if (decision === "confirm_customer" || decision === "human_approval") lifecycle.push({ state: "confirmation_received", at: new Date(Date.parse(timestamp) + 2000).toISOString(), detail: "Customer confirmation recorded before mutation." });
-    if (decision === "human_approval") lifecycle.push({ state: "human_approved", at: new Date(Date.parse(timestamp) + 3000).toISOString(), detail: "M. Lee approved the mock action." });
-    lifecycle.push({ state: "action_executed", at: new Date(Date.parse(timestamp) + 4000).toISOString(), detail: failed ? "Provider returned a failure." : "Mock action executed under idempotency protection." });
+    if (decision === "human_approval") lifecycle.push({ state: "human_approved", at: new Date(Date.parse(timestamp) + 3000).toISOString(), detail: "M. Lee approved the action preview." });
+    lifecycle.push({ state: "action_executed", at: new Date(Date.parse(timestamp) + 4000).toISOString(), detail: failed ? "Provider returned a failure." : "Action preview recorded with idempotency protection." });
     lifecycle.push({ state: failed ? "failed" : "result_verified", at: new Date(Date.parse(timestamp) + 5000).toISOString(), detail: failed ? "Provider timeout; operator review required before retry." : "Provider result was read back and verified." });
   }
   return {
@@ -886,9 +886,9 @@ export const featuredAuditEvent: AutomationAuditEvent = {
     { state: "requested", at: "2026-10-03T09:32:17Z", detail: "Refund $18.20 requested for Order #83921." },
     { state: "policy_evaluated", at: "2026-10-03T09:32:18Z", detail: "refund-policy-v12 requires verified identity and approval for this path." },
     { state: "confirmation_received", at: "2026-10-03T09:32:21Z", detail: "Customer confirmed $18.20 refund and affected order." },
-    { state: "human_approved", at: "2026-10-03T09:33:02Z", detail: "M. Lee approved the mock financial action." },
-    { state: "action_executed", at: "2026-10-03T09:33:05Z", detail: "Mock issue_refund execution recorded with idempotency protection." },
-    { state: "result_verified", at: "2026-10-03T09:33:09Z", detail: "Mock provider result verified as SUCCESS." },
+    { state: "human_approved", at: "2026-10-03T09:33:02Z", detail: "M. Lee approved the financial action preview." },
+    { state: "action_executed", at: "2026-10-03T09:33:05Z", detail: "issue_refund preview recorded with idempotency protection." },
+    { state: "result_verified", at: "2026-10-03T09:33:09Z", detail: "Reference result verified as SUCCESS." },
   ],
 };
 
@@ -999,5 +999,5 @@ export const qualityRegressionGate = {
   suiteId: "action-safety",
   label: "Action Safety",
   deltaPercentagePoints: -7.2,
-  effect: "Rollout expansion blocked; simulated auto-pause condition would trigger.",
+  effect: "Rollout expansion blocked; auto-pause condition would trigger during replay.",
 };

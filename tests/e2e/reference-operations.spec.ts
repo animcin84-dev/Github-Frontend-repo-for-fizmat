@@ -54,7 +54,7 @@ for (const viewport of [
         if (route === "/inbox") {
           // Narrow Inbox deliberately uses the compact queue instead of the
           // desktop summary. Its heading is rendered after both API queries.
-          await expect(page.getByText("MOCK", { exact: true }).first()).toBeVisible();
+          await expect(page.getByText("LOCAL DATA", { exact: true }).first()).toBeVisible();
         } else {
           await expect(page.getByRole("region", { name: "Workspace summary", exact: true })).toBeVisible();
         }
