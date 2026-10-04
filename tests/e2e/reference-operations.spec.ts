@@ -122,6 +122,17 @@ test("desktop operator workspaces begin early and keep useful list density", asy
   await testInfo.attach("operator-geometry", { body: JSON.stringify(geometry, null, 2), contentType: "application/json" });
 });
 
+test("@a11y selected quality severity stays readable on the steel surface", async ({ page }) => {
+  await page.goto("/ai-quality");
+  const selected = page.locator(".si-quality-workspace .si-reference-row.is-selected");
+  await expect(selected.getByText("high", { exact: true })).toBeVisible();
+  const results = await new AxeBuilder({ page })
+    .include(".si-quality-workspace .si-reference-row.is-selected > span:last-child")
+    .withRules(["color-contrast"])
+    .analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test("source selection updates the detail panel and survives reload", async ({ page }) => {
   await page.goto("/knowledge?tab=sources&source=ks-payment-auth");
   const workspace = page.getByRole("region", { name: "Knowledge documents", exact: true });

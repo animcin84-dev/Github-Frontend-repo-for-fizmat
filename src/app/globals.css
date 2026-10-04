@@ -221,7 +221,7 @@ button {cursor:pointer;} button:disabled {cursor:default;}
 .si-integration-content .si-detail-grid{margin-top:14px}
 .si-integrations-workspace .si-detail-pane{padding:20px}
 .si-integration-content dd{min-width:0;overflow-wrap:anywhere}
-.si-quality-workspace .si-reference-row.is-selected{--warning:#5c3e13;--danger:#732720;--info:#123b57;--success:#23583c;--muted-foreground:#203d50}
+.si-quality-workspace .si-reference-row.is-selected{--surface-1:#eef4f7;--border:#ffffff30;--warning:#5c3e13;--danger:#732720;--info:#123b57;--success:#23583c;--muted-foreground:#203d50}
 .si-detail-scroll,.si-master-pane{scrollbar-width:thin;scrollbar-color:rgb(54 76 89 / .45) transparent}
 .si-master-pane{scrollbar-color:rgb(210 222 230 / .3) transparent}
 
