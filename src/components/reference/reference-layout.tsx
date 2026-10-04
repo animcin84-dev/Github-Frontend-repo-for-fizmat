@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, SlidersHorizontal } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+const WorkspacePanelContext = createContext<string | undefined>(undefined);
 
 export function RouteHeader({ title, actions, note }: { title: string; actions?: ReactNode; note?: ReactNode }) {
   const router = useRouter();
@@ -29,11 +31,33 @@ export function FilterHinge({ children, count = 0, label = "Active filters" }: {
 
 export function WorkspaceTabs({ items, active, onChange, label = "Workspace views" }: { items: Array<{id:string;label:string;count?:number}>; active:string; onChange:(id:string)=>void; label?:string }) {
   const reduced = useReducedMotion();
-  return <div role="tablist" aria-label={label} className="si-tab-bridge">{items.map((item) => <button role="tab" aria-selected={active === item.id} key={item.id} onClick={() => onChange(item.id)}>{active === item.id ? <motion.span className="si-active-pill" layoutId={`bridge-${label}`} transition={{duration:reduced ? 0 : .18, ease:[.22,1,.36,1]}} /> : null}<span>{item.label}{item.count !== undefined ? <small>{item.count}</small> : null}</span></button>)}</div>;
+  const panelId = useContext(WorkspacePanelContext);
+  const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+  return <div role="tablist" aria-label={label} className="si-tab-bridge">{items.map((item, index) => <button ref={(node) => { buttons.current[index] = node; }} role="tab" aria-controls={panelId} aria-selected={active === item.id} tabIndex={active === item.id ? 0 : -1} key={item.id} onClick={() => onChange(item.id)} onKeyDown={(event) => {
+    let next: number;
+    if (event.key === "ArrowRight") next = (index + 1) % items.length;
+    else if (event.key === "ArrowLeft") next = (index + items.length - 1) % items.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = items.length - 1;
+    else return;
+    event.preventDefault();
+    onChange(items[next].id);
+    buttons.current[next]?.focus();
+  }}>{active === item.id ? <motion.span className="si-active-pill" layoutId={`bridge-${label}`} transition={{duration:reduced ? 0 : .18, ease:[.22,1,.36,1]}} /> : null}<span>{item.label}{item.count !== undefined ? <small>{item.count}</small> : null}</span></button>)}</div>;
 }
 
-export function OperationalWorkspace({ master, detail, tabs, title, className }: {master:ReactNode;detail:ReactNode;tabs?:ReactNode;title?:string;className?:string}) {
-  return <section className={cn("si-operational-workspace", className)} aria-label={title ?? "Operational workspace"}>{tabs ? <div className="si-workspace-notch">{tabs}</div> : null}<div className="si-master-pane">{title ? <div className="si-pane-heading">{title}<SlidersHorizontal size={14} aria-hidden="true" /></div> : null}{master}</div><div className="si-detail-pane">{detail}</div></section>;
+export function OperationalWorkspace({ master, detail, tabs, title, className, detailKey }: {master:ReactNode;detail:ReactNode;tabs?:ReactNode;title?:string;className?:string;detailKey?:string}) {
+  const panelId = useId();
+  const panel = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (reduced || !detailKey) return;
+    // Animate the selected identity without remounting the pane or moving its action band.
+    const header = panel.current?.querySelector(".si-detail-header, .si-thread-header") ?? panel.current?.querySelector("h2");
+    const animation = header?.animate([{ opacity: .65, transform: "translateX(4px)" }, { opacity: 1, transform: "translateX(0)" }], { duration: 200, easing: "cubic-bezier(.22,1,.36,1)" });
+    return () => animation?.cancel();
+  }, [detailKey, reduced]);
+  return <WorkspacePanelContext.Provider value={panelId}><section className={cn("si-operational-workspace", className)} aria-label={title ?? "Operational workspace"}>{tabs ? <div className="si-workspace-notch">{tabs}</div> : null}<div className="si-master-pane">{title ? <div className="si-pane-heading">{title}<SlidersHorizontal size={14} aria-hidden="true" /></div> : null}{master}</div><div ref={panel} id={panelId} role={tabs ? "tabpanel" : undefined} aria-label={tabs ? `${title ?? "Workspace"} details` : undefined} className="si-detail-pane">{detail}</div></section></WorkspacePanelContext.Provider>;
 }
 
 export function DetailBand({ metrics, action }: {metrics:ReferenceMetric[];action?:ReactNode}) {

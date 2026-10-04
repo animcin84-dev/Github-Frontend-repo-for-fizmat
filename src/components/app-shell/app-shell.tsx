@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {nav.slice(6).map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-label={label} title={label} className="si-circle-control" aria-current={isActive(href) ? "page" : undefined}><Icon size={14} aria-hidden="true" /></Link>)}
         <ThemeToggle />
       </div>
-        <details className="si-mobile-navigation">
+        <details className="si-mobile-navigation" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.currentTarget.removeAttribute("open"); event.currentTarget.querySelector("summary")?.focus(); } }}>
           <summary className="si-circle-control list-none" aria-label="Open navigation"><Menu size={16} aria-hidden="true" /></summary>
           <nav className="si-mobile-menu" aria-label="Mobile navigation">{nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="si-mobile-link" aria-current={isActive(href) ? "page" : undefined} onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}><Icon size={16} aria-hidden="true" />{label}</Link>)}</nav>
         </details>

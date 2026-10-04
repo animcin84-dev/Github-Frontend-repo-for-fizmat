@@ -215,6 +215,34 @@ button {cursor:pointer;} button:disabled {cursor:default;}
 .si-control-diagnostics .si-surface,.si-quality-diagnostics .si-surface{background:var(--surface-2);box-shadow:none;border-color:var(--border);border-radius:18px}
 .si-control-diagnostics [class*="xl:grid-cols-"],.si-control-diagnostics [class*="lg:grid-cols-"],.si-quality-diagnostics [class*="xl:grid-cols-"],.si-quality-diagnostics [class*="lg:grid-cols-"]{grid-template-columns:minmax(0,1fr)}
 .si-quality-diagnostics .h-\[280px\]{height:154px}
+.si-integration-content{background:transparent;border:0;box-shadow:none}
+.si-integration-content>div:first-child{padding:0 0 14px}
+.si-integration-content h2{font-size:22px;font-weight:500}
+.si-integration-content .si-detail-grid{margin-top:14px}
+.si-integrations-workspace .si-detail-pane{padding:20px}
+.si-integration-content dd{min-width:0;overflow-wrap:anywhere}
 .si-quality-workspace .si-reference-row.is-selected{--warning:#5c3e13;--danger:#732720;--info:#123b57;--success:#23583c;--muted-foreground:#203d50}
 .si-detail-scroll,.si-master-pane{scrollbar-width:thin;scrollbar-color:rgb(54 76 89 / .45) transparent}
 .si-master-pane{scrollbar-color:rgb(210 222 230 / .3) transparent}
+
+/* Match loaded route geometry while data is pending. */
+.si-loading-workspace { position: relative; }
+.si-loading-label { position: absolute; top: 10px; right: 0; font-size: 12px; color: var(--muted-foreground); }
+.si-loading-bar { width: 38%; height: 14px; border-radius: 20px; background: color-mix(in srgb, var(--foreground) 12%, transparent); }
+.si-loading-title { width: 240px; max-width: 65%; height: 38px; }
+.si-loading-row { width: 90%; height: 52px; margin: 16px 0; }
+.si-loading-block { opacity: .5; }
+@media (prefers-reduced-motion: no-preference) {
+  .si-loading-bar, .si-loading-block { animation: si-loading-pulse 1.6s ease-in-out infinite; }
+  @keyframes si-loading-pulse { 50% { opacity: .35; } }
+}
+
+@media (max-width:767px) {
+  .si-workspace-notch { width:100%; min-width:0; }
+  .si-workspace-notch::before,.si-workspace-notch::after { display:none; }
+  .si-tab-bridge { min-width:0; max-width:100%; overflow-x:auto; scrollbar-width:thin; }
+  .si-tab-bridge button { flex-shrink:0; }
+  .si-option-row { flex-wrap:wrap; }
+  .si-option-tile { flex:1 1 70px; }
+  .si-signal-action { margin-left:auto; }
+}

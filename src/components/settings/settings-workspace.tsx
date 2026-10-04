@@ -102,7 +102,7 @@ export function SettingsWorkspace() {
       <span className="text-[10px] text-[var(--muted-foreground)]">Read-only workspace configuration · browser theme is local</span>
       <input aria-label="Find settings section" className="ml-auto" placeholder="Find a section" value={search} onChange={(event) => setSearch(event.target.value)} />
     </FilterHinge>
-    <OperationalWorkspace className="si-route-workspace si-settings-workspace" title="Settings categories"
+    <OperationalWorkspace detailKey={selected.id} className="si-route-workspace si-settings-workspace" title="Settings categories"
       tabs={<WorkspaceTabs label="Settings groups" active={selected.group} onChange={selectGroup} items={[{ id: "general", label: "General" }, { id: "ai", label: "AI / channels" }, { id: "security", label: "Security / data" }]} />}
       master={<>{visible.map((section) => {
         const Icon = section.icon;
