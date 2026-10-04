@@ -1,4 +1,4 @@
-import type { ConversationDetail, ConversationListItem } from "@/lib/domain";
+import type { ConversationAnalysis, ConversationDetail, ConversationListItem } from "@/lib/domain";
 import type { SendReplyResponse } from "@/server/contracts";
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -15,6 +15,10 @@ export async function getConversationDetail(id: string): Promise<ConversationDet
   const response = await fetch(`/api/conversations/${encodeURIComponent(id)}`, { cache: "no-store" });
   if (response.status === 404) return null;
   return readJson(response);
+}
+
+export async function analyzeConversation(id: string): Promise<ConversationAnalysis> {
+  return readJson(await fetch(`/api/conversations/${encodeURIComponent(id)}/analyze`, { method: "POST" }));
 }
 
 export async function sendConversationReply(id: string, input: { text: string; clientRequestId: string }): Promise<SendReplyResponse> {

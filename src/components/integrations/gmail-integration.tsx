@@ -35,7 +35,12 @@ export function GmailIntegration() {
     mutationFn: async () => json(await fetch("/api/integrations/gmail/sync", { method: "POST" })),
     onSuccess: async () => {
       toast.success("Gmail synchronization completed");
-      await queryClient.invalidateQueries({ queryKey: ["gmail-integration-status"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["gmail-integration-status"] }),
+        queryClient.invalidateQueries({ queryKey: ["inbox-integration-status"] }),
+        queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+        queryClient.invalidateQueries({ queryKey: ["conversation"] }),
+      ]);
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Gmail synchronization failed"),
   });

@@ -30,6 +30,7 @@ export default defineConfig({
       WHATSAPP_WABA_ID: "",
       WHATSAPP_WEBHOOK_VERIFY_TOKEN: "",
       META_APP_SECRET: "",
+      OPENAI_API_KEY: "",
     },
     timeout: 120_000,
   },
