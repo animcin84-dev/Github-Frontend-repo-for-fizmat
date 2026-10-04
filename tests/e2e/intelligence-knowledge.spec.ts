@@ -37,14 +37,17 @@ test.describe("knowledge", () => {
     await page.goto("/knowledge");
     await page.getByRole("tab", { name: /Gaps/ }).click();
     await expect(page).toHaveURL(/tab=gaps/);
-    await expect(page.getByText("Subscription pause eligibility")).toBeVisible();
+    await page.getByRole("button", { name: /Subscription pause eligibility/ }).click();
+    await expect(page.getByRole("heading", { name: "Subscription pause eligibility", level: 2 })).toBeVisible();
 
     await page.getByRole("tab", { name: /Conflicts/ }).click();
     await expect(page).toHaveURL(/tab=conflicts/);
-    await expect(page.getByText("Refund request window")).toBeVisible();
+    await page.getByRole("button", { name: /Refund request window/ }).click();
+    await expect(page.getByRole("heading", { name: "Refund request window", level: 2 })).toBeVisible();
 
     await page.getByRole("tab", { name: "Coverage" }).click();
     await expect(page).toHaveURL(/tab=coverage/);
-    await expect(page.getByText("Duplicate payment")).toBeVisible();
+    await page.getByRole("button", { name: /Duplicate payment/ }).click();
+    await expect(page.getByRole("heading", { name: "Duplicate payment", level: 2 })).toBeVisible();
   });
 });

@@ -202,3 +202,10 @@ button {cursor:pointer;} button:disabled {cursor:default;}
 .si-route-workspace .si-detail-tile strong {font-size:19px;}
 @media (min-width:768px) and (max-height:800px) {.si-route-workspace{height:360px;min-height:360px;}}
 @media (max-width:767px) {.si-route-workspace{height:auto;min-height:0;}.si-route-workspace .si-detail-pane{min-height:420px;}.si-route-workspace .si-detail-scroll{max-height:440px;}.si-route-workspace .si-master-pane{max-height:320px;}}
+.si-signal-chart {background:transparent;border:1px solid #ffffff25;border-radius:18px;}
+.si-signal-chart>div:first-child {padding:10px 12px;}
+.si-signal-chart>div:first-child p {font-size:10px;}
+.si-signal-chart>div:last-child {font-size:10px;line-height:1.5;padding:8px 12px;}
+.si-intelligence-workspace .si-reference-row.is-selected {--surface-1:#ffffff44;--surface-2:#ffffff55;--muted-foreground:#203d50;--warning:#5c3e13;--danger:#732720;--info:#123b57;--border:#ffffff30;}
+.si-intelligence-workspace .si-reference-row .si-circle-control {width:27px;height:27px;min-height:27px;color:inherit;}
+.si-intelligence-workspace .si-reference-row {gap:8px;min-height:64px;}
